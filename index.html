@@ -375,9 +375,9 @@ let tokenClient = null;
 let photos = [], cur = 0, marked = new Set(), favorited = new Set();
 let mode = 'cull';
 let ssPlay = true, ssRand = false, ssTimer = null;
-let blobURL = null;
 let rendering = false;
 let favFolderId = null;
+const imgCache = new Map(); // fileId → blobURL, max 8 entries
 
 const IMG_MIME = new Set([
   'image/jpeg','image/jpg','image/png','image/gif','image/webp',
@@ -493,7 +493,8 @@ async function loadFolder() {
   const folderId = match ? match[1] : input;
 
   showScreen('s-loading');
-  photos = []; marked.clear(); cur = 0;
+  photos = []; marked.clear(); favorited.clear(); cur = 0;
+  imgCache.forEach(url => URL.revokeObjectURL(url)); imgCache.clear();
 
   let n = 0;
   try {
@@ -519,6 +520,27 @@ function goToFolder() {
   showScreen('s-folder');
 }
 
+// ── Image cache ───────────────────────────────────────────────
+
+async function fetchCached(p) {
+  if (imgCache.has(p.id)) return imgCache.get(p.id);
+  const r = await driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}?alt=media`);
+  if (!r.ok) throw new Error(`Fetch failed: ${r.status}`);
+  const url = URL.createObjectURL(await r.blob());
+  imgCache.set(p.id, url);
+  if (imgCache.size > 8) {
+    const oldest = imgCache.keys().next().value;
+    URL.revokeObjectURL(imgCache.get(oldest));
+    imgCache.delete(oldest);
+  }
+  return url;
+}
+
+function prefetch(idx) {
+  const p = photos[idx % photos.length];
+  if (p && !imgCache.has(p.id)) fetchCached(p).catch(() => {});
+}
+
 // ── Render ────────────────────────────────────────────────────
 
 async function render() {
@@ -527,19 +549,12 @@ async function render() {
 
   const img = el('photo');
   const loader = el('img-loading');
+  const cached = imgCache.has(p.id);
 
-  img.classList.add('loading');
-  loader.style.display = 'block';
+  if (!cached) { img.classList.add('loading'); loader.style.display = 'block'; }
 
   try {
-    if (blobURL) { URL.revokeObjectURL(blobURL); blobURL = null; }
-    const r = await driveAPI(
-      `https://www.googleapis.com/drive/v3/files/${p.id}?alt=media`
-    );
-    if (!r.ok) throw new Error(`Image fetch failed: ${r.status}`);
-    const blob = await r.blob();
-    blobURL = URL.createObjectURL(blob);
-    img.src = blobURL;
+    img.src = await fetchCached(p);
   } catch(e) {
     console.warn('render error', e);
     img.src = '';
@@ -554,14 +569,9 @@ async function render() {
 
   updateUI();
 
-  // Preload next
-  preload(photos[(cur + 1) % photos.length]);
-}
-
-function preload(p) {
-  if (!p) return;
-  driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}?alt=media`)
-    .then(r => r.blob()).catch(() => {});
+  // Prefetch next 2
+  if (photos.length > 1) prefetch(cur + 1);
+  if (photos.length > 2) prefetch(cur + 2);
 }
 
 function updateUI() {
@@ -732,28 +742,26 @@ async function doPurge() {
   `;
 
   let done = 0, fail = 0;
-  for (const i of idxs) {
-    const p = photos[i];
-    try {
-      const r = await driveAPI(
-        `https://www.googleapis.com/drive/v3/files/${p.id}`,
-        { method: 'DELETE' }
-      );
-      if (r.ok || r.status === 204) {
-        photos.splice(i, 1);
-      } else {
-        console.warn('Delete returned', r.status, 'for', p.path);
-        fail++;
-      }
-    } catch(e) {
-      console.warn('Delete failed', p.path, e);
-      fail++;
-    }
-    done++;
-    el('purge-status').textContent = `${done} of ${total}`;
-    el('purge-bar').style.width = `${Math.round(done / total * 100)}%`;
-    await yld();
+  const succeeded = new Set();
+  const BATCH = 5;
+
+  for (let b = 0; b < idxs.length; b += BATCH) {
+    const batch = idxs.slice(b, b + BATCH);
+    await Promise.allSettled(batch.map(async i => {
+      const p = photos[i];
+      try {
+        const r = await driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}`, { method: 'DELETE' });
+        if (r.ok || r.status === 204) succeeded.add(i);
+        else { console.warn('Delete returned', r.status, 'for', p.path); fail++; }
+      } catch(e) { console.warn('Delete failed', p.path, e); fail++; }
+      done++;
+      el('purge-status').textContent = `${done} of ${total}`;
+      el('purge-bar').style.width = `${Math.round(done / total * 100)}%`;
+    }));
   }
+
+  // Remove deleted photos without index-shifting issues
+  photos = photos.filter((_, i) => !succeeded.has(i));
 
   marked.clear();
   closeModal();
@@ -795,26 +803,28 @@ async function ensureFavFolder() {
   return favFolderId;
 }
 
-async function favoritePhoto() {
+function favoritePhoto() {
   const p = photos[cur];
   if (!p || favorited.has(p.id)) return;
-  try {
-    const folderId = await ensureFavFolder();
-    await driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}/copy`, {
+  // Optimistic: update UI instantly
+  favorited.add(p.id);
+  const badge = el('fav-badge');
+  badge.style.display = 'block';
+  setTimeout(() => { badge.style.display = 'none'; }, 1200);
+  updateUI();
+  // API call in background
+  ensureFavFolder()
+    .then(folderId => driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}/copy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ parents: [folderId], name: p.name }),
+    }))
+    .catch(e => {
+      console.error('Favorite failed', e);
+      favorited.delete(p.id);
+      updateUI();
+      el('fav-badge').style.display = 'none';
     });
-    favorited.add(p.id);
-    // Flash the badge
-    const badge = el('fav-badge');
-    badge.style.display = 'block';
-    setTimeout(() => { badge.style.display = 'none'; }, 1200);
-    updateUI();
-  } catch(e) {
-    console.error('Favorite failed', e);
-    alert('Could not favorite: ' + e.message);
-  }
 }
 
 // ── Keyboard ──────────────────────────────────────────────────
