@@ -177,12 +177,11 @@ input[type=text]::placeholder { color: #3a3a3a; }
 #photo.dim { opacity: 0.18; }
 #photo.loading { opacity: 0.15; }
 
-#del-badge {
+#del-badge, #fav-badge {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(231,76,60,0.93);
   color: #fff;
   padding: 10px 24px;
   border-radius: 8px;
@@ -192,6 +191,8 @@ input[type=text]::placeholder { color: #3a3a3a; }
   pointer-events: none;
   display: none;
 }
+#del-badge { background: rgba(231,76,60,0.93); }
+#fav-badge { background: rgba(39,174,96,0.93); top: calc(50% - 44px); }
 
 #img-loading {
   position: absolute;
@@ -242,6 +243,8 @@ input[type=text]::placeholder { color: #3a3a3a; }
 .btn-ghost { background: transparent; color: #888; border: 1px solid #2e2e2e; }
 .btn-ghost:hover { color: var(--text); border-color: #555; }
 .btn-on { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+.btn-fav { background: #27ae60; color: #fff; }
+.btn-fav-done { background: transparent; color: #27ae60; border: 1px solid #27ae60; }
 .sep { width: 1px; height: 26px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
 select {
   background: #1a1a1a; color: var(--text);
@@ -350,6 +353,7 @@ select {
   <div id="viewport">
     <img id="photo" alt="">
     <div id="del-badge">MARKED FOR DELETION</div>
+    <div id="fav-badge">★ FAVORITED</div>
     <div id="img-loading"></div>
   </div>
   <div id="ctrlbar">
@@ -365,11 +369,12 @@ let CLIENT_ID = localStorage.getItem('ph_client') || '';
 let userEmail = '';
 let accessToken = null;
 let tokenClient = null;
-let photos = [], cur = 0, marked = new Set();
+let photos = [], cur = 0, marked = new Set(), favorited = new Set();
 let mode = 'cull';
 let ssPlay = true, ssRand = false, ssTimer = null;
 let blobURL = null;
-let rendering = false; // debounce rapid navigation
+let rendering = false;
+let favFolderId = null;
 
 const IMG_MIME = new Set([
   'image/jpeg','image/jpg','image/png','image/gif','image/webp',
@@ -578,6 +583,12 @@ function updateUI() {
   }
   const pb = el('btn-purge');
   if (pb) { pb.style.display = n ? 'inline-block' : 'none'; pb.textContent = `Purge ${n}`; }
+  const fb = el('btn-fav');
+  if (fb) {
+    const isFav = favorited.has(photos[cur]?.id);
+    fb.className = isFav ? 'btn btn-fav-done' : 'btn btn-fav';
+    fb.textContent = isFav ? '★ Saved' : '★ Fav';
+  }
 }
 
 // ── Navigation ────────────────────────────────────────────────
@@ -634,12 +645,13 @@ function enterCull() {
   el('ctrls').innerHTML = `
     <button class="btn btn-ghost" onclick="nav(-1)">← Prev</button>
     <button class="btn btn-danger" id="btn-mark" onclick="toggleMark()">🗑 Mark</button>
+    <button class="btn btn-fav" id="btn-fav" onclick="favoritePhoto()">★ Fav</button>
     <button class="btn btn-ghost" onclick="nav(1)">Next →</button>
     <div class="sep"></div>
     <button class="btn btn-ghost" onclick="enterSS()">▶ Slideshow</button>
     <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">Purge</button>
   `;
-  el('hints').textContent = '← → navigate  ·  D mark/unmark  ·  S slideshow';
+  el('hints').textContent = '← → navigate  ·  D mark/unmark  ·  F favorite  ·  S slideshow';
   updateUI();
 }
 
@@ -734,6 +746,50 @@ async function doPurge() {
   render();
 }
 
+// ── Favorites ────────────────────────────────────────────────
+
+async function ensureFavFolder() {
+  if (favFolderId) return favFolderId;
+  const params = new URLSearchParams({
+    q: "name='⭐ Favorites' and mimeType='application/vnd.google-apps.folder' and trashed=false and 'root' in parents",
+    fields: 'files(id)',
+    pageSize: '1',
+  });
+  const r = await driveAPI(`https://www.googleapis.com/drive/v3/files?${params}`);
+  const d = await r.json();
+  if (d.files && d.files.length > 0) { favFolderId = d.files[0].id; return favFolderId; }
+  const cr = await driveAPI('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: '⭐ Favorites', mimeType: 'application/vnd.google-apps.folder' }),
+  });
+  const cd = await cr.json();
+  favFolderId = cd.id;
+  return favFolderId;
+}
+
+async function favoritePhoto() {
+  const p = photos[cur];
+  if (!p || favorited.has(p.id)) return;
+  try {
+    const folderId = await ensureFavFolder();
+    await driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}/copy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parents: [folderId], name: p.name }),
+    });
+    favorited.add(p.id);
+    // Flash the badge
+    const badge = el('fav-badge');
+    badge.style.display = 'block';
+    setTimeout(() => { badge.style.display = 'none'; }, 1200);
+    updateUI();
+  } catch(e) {
+    console.error('Favorite failed', e);
+    alert('Could not favorite: ' + e.message);
+  }
+}
+
 // ── Keyboard ──────────────────────────────────────────────────
 
 document.addEventListener('keydown', e => {
@@ -746,6 +802,8 @@ document.addEventListener('keydown', e => {
     case 'ArrowLeft':  case 'ArrowUp':   e.preventDefault(); nav(-1); break;
     case 'd': case 'D': case 'Delete': case 'Backspace':
       if (mode === 'cull') { e.preventDefault(); toggleMark(); } break;
+    case 'f': case 'F':
+      if (mode === 'cull') { e.preventDefault(); favoritePhoto(); } break;
     case ' ':  e.preventDefault(); if (mode === 'ss') togglePlay(); break;
     case 'r': case 'R': if (mode === 'ss') toggleRand(); break;
     case 's': case 'S': mode === 'cull' ? enterSS() : enterCull(); break;
