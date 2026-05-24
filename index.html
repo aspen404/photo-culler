@@ -274,6 +274,9 @@ select {
 #modal-box h2 { font-weight: 400; margin-bottom: 10px; }
 #modal-body { color: var(--muted); font-size: 0.88rem; line-height: 1.5; margin-bottom: 22px; }
 .modal-row { display: flex; gap: 10px; justify-content: flex-end; }
+#purge-bar-wrap { background: #2a2a2a; border-radius: 4px; height: 6px; margin: 14px 0 8px; overflow: hidden; }
+#purge-bar { height: 100%; background: var(--danger); border-radius: 4px; width: 0; transition: width 0.2s; }
+#purge-status { font-size: 0.82rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -718,9 +721,17 @@ function askPurge() {
 function closeModal() { el('modal').style.display = 'none'; }
 
 async function doPurge() {
-  closeModal();
   const idxs = [...marked].sort((a, b) => b - a);
-  let fail = 0;
+  const total = idxs.length;
+
+  // Switch modal to progress view
+  el('modal-box').innerHTML = `
+    <h2>Deleting…</h2>
+    <div id="purge-status">0 of ${total}</div>
+    <div id="purge-bar-wrap"><div id="purge-bar"></div></div>
+  `;
+
+  let done = 0, fail = 0;
   for (const i of idxs) {
     const p = photos[i];
     try {
@@ -738,8 +749,24 @@ async function doPurge() {
       console.warn('Delete failed', p.path, e);
       fail++;
     }
+    done++;
+    el('purge-status').textContent = `${done} of ${total}`;
+    el('purge-bar').style.width = `${Math.round(done / total * 100)}%`;
+    await yld();
   }
+
   marked.clear();
+  closeModal();
+  // Restore modal box for next use
+  el('modal-box').innerHTML = `
+    <h2>Delete Forever?</h2>
+    <div id="modal-body"></div>
+    <div class="modal-row">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="doPurge()">Yes, Delete</button>
+    </div>
+  `;
+
   if (fail) alert(`${fail} file(s) could not be deleted (check Drive permissions).`);
   if (!photos.length) { showScreen('s-folder'); return; }
   cur = Math.min(cur, photos.length - 1);
