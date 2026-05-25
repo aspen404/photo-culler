@@ -246,12 +246,22 @@ input[type=text]::placeholder { color: #3a3a3a; }
 .btn-fav { background: #27ae60; color: #fff; }
 .btn-fav-done { background: transparent; color: #27ae60; border: 1px solid #27ae60; }
 .sep { width: 1px; height: 26px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
-select {
-  background: #1a1a1a; color: var(--text);
-  border: 1px solid #2e2e2e; padding: 5px 8px;
-  border-radius: 5px; font-size: 0.8rem; font-family: inherit; cursor: pointer;
-}
 .ctrl-lbl { font-size: 0.78rem; color: var(--muted); }
+#speed-label { font-size: 0.78rem; color: var(--muted); min-width: 30px; }
+input[type=range] {
+  -webkit-appearance: none;
+  width: 90px; height: 4px;
+  background: #2e2e2e; border-radius: 2px; cursor: pointer; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+}
+input[type=range]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent); border: none; cursor: pointer;
+}
 
 /* ── Modal ───────────────────────────────────────────────────── */
 #modal {
@@ -373,8 +383,7 @@ let userEmail = '';
 let accessToken = null;
 let tokenClient = null;
 let photos = [], cur = 0, marked = new Set(), favorited = new Set();
-let mode = 'cull';
-let ssPlay = true, ssRand = false, ssTimer = null;
+let autoPlaying = true, autoRandom = false, autoDelay = 1000, autoTimer = null;
 let rendering = false;
 let favFolderId = null;
 const imgCache = new Map(); // fileId → blobURL, max 8 entries
@@ -511,12 +520,12 @@ async function loadFolder() {
   if (!photos.length) { alert('No images found in that folder.'); showScreen('s-folder'); return; }
 
   showScreen('app');
-  enterCull();
+  buildControls();
   await render();
 }
 
 function goToFolder() {
-  clearInterval(ssTimer);
+  clearInterval(autoTimer);
   showScreen('s-folder');
 }
 
@@ -578,13 +587,7 @@ function updateUI() {
   const p = photos[cur];
   const n = marked.size;
 
-  if (mode === 'ss') {
-    const keepers = photos.filter((_, i) => !marked.has(i));
-    const ki = keepers.indexOf(p);
-    el('progress').textContent = `${Math.max(ki, 0) + 1} / ${keepers.length}`;
-  } else {
-    el('progress').textContent = `${cur + 1} / ${photos.length}`;
-  }
+  el('progress').textContent = `${cur + 1} / ${photos.length}`;
   el('filepath').textContent = p?.path ?? '';
   el('marked-count').textContent = n ? `${n} marked` : '';
 
@@ -608,24 +611,15 @@ function updateUI() {
 
 async function nav(d) {
   if (rendering) return;
-  if (mode === 'ss') {
-    let idx = cur, steps = 0;
-    do {
-      idx = (idx + d + photos.length) % photos.length;
-      if (++steps > photos.length) return;
-    } while (marked.has(idx));
-    cur = idx;
-  } else {
-    cur = (cur + d + photos.length) % photos.length;
-  }
+  cur = (cur + d + photos.length) % photos.length;
   rendering = true;
   await render();
   rendering = false;
-  if (mode === 'ss' && ssPlay) resetTimer();
+  resetTimer();
 }
 
 async function navRand() {
-  const pool = photos.map((_, i) => i).filter(i => !marked.has(i) && i !== cur);
+  const pool = photos.map((_, i) => i).filter(i => i !== cur);
   if (!pool.length) return;
   cur = pool[Math.floor(Math.random() * pool.length)];
   rendering = true;
@@ -650,74 +644,53 @@ async function toggleMark() {
   }
 }
 
-// ── Modes ─────────────────────────────────────────────────────
+// ── Controls (single mode) ────────────────────────────────────
 
-function enterCull() {
-  mode = 'cull';
-  clearInterval(ssTimer);
+function buildControls() {
   el('ctrls').innerHTML = `
     <button class="btn btn-ghost" onclick="nav(-1)">← Prev</button>
     <button class="btn btn-danger" id="btn-mark" onclick="toggleMark()">🗑 Mark</button>
-    <button class="btn btn-fav" id="btn-fav" onclick="favoritePhoto()">★ Fav</button>
+    <button class="btn btn-fav"   id="btn-fav"  onclick="favoritePhoto()">★ Fav</button>
     <button class="btn btn-ghost" onclick="nav(1)">Next →</button>
     <div class="sep"></div>
-    <button class="btn btn-ghost" onclick="enterSS()">▶ Slideshow</button>
+    <button class="btn btn-ghost" id="btn-pp" onclick="togglePlay()">⏸</button>
+    <input type="range" id="speed-slider" min="300" max="8000" step="100" value="${autoDelay}"
+           oninput="onSpeedChange(this.value)">
+    <span id="speed-label" class="ctrl-lbl">${(autoDelay/1000).toFixed(1)}s</span>
+    <button class="btn btn-ghost" id="btn-rand" onclick="toggleRand()">🔀</button>
+    <div class="sep"></div>
     <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">Purge</button>
   `;
-  el('hints').textContent = '← → navigate  ·  D mark/unmark  ·  F favorite  ·  S slideshow';
+  el('hints').textContent = '← → navigate  ·  D mark  ·  F favorite  ·  Space pause  ·  R random';
   updateUI();
-}
-
-function enterSS() {
-  if (photos.filter((_, i) => !marked.has(i)).length === 0) {
-    alert('All photos are marked for deletion — nothing to show in slideshow.');
-    return;
-  }
-  if (marked.has(cur)) {
-    let idx = cur;
-    for (let i = 0; i < photos.length; i++) {
-      idx = (idx + 1) % photos.length;
-      if (!marked.has(idx)) break;
-    }
-    cur = idx;
-  }
-  mode = 'ss'; ssPlay = true; ssRand = false;
-  el('ctrls').innerHTML = `
-    <span class="ctrl-lbl">Speed</span>
-    <select id="ss-spd" onchange="resetTimer()">
-      <option value="800">0.8s</option>
-      <option value="1500">1.5s</option>
-      <option value="3000" selected>3s</option>
-      <option value="5000">5s</option>
-      <option value="8000">8s</option>
-    </select>
-    <button class="btn btn-primary" id="btn-pp" onclick="togglePlay()">⏸ Pause</button>
-    <button class="btn btn-ghost" id="btn-rand" onclick="toggleRand()">🔀 Random</button>
-    <div class="sep"></div>
-    <button class="btn btn-ghost" onclick="enterCull()">✂ Cull Mode</button>
-  `;
-  el('hints').textContent = '← → navigate  ·  Space play/pause  ·  R random  ·  S cull mode';
   startTimer();
-  render();
 }
 
-// ── Slideshow timer ───────────────────────────────────────────
+// ── Auto-advance timer ────────────────────────────────────────
 
 function startTimer() {
-  clearInterval(ssTimer);
-  const spd = parseInt(el('ss-spd')?.value || '3000');
-  ssTimer = setInterval(() => { ssRand ? navRand() : nav(1); }, spd);
+  clearInterval(autoTimer);
+  if (!autoPlaying) return;
+  autoTimer = setInterval(() => { autoRandom ? navRand() : nav(1); }, autoDelay);
 }
-function resetTimer() { if (ssPlay) startTimer(); }
+function resetTimer() { if (autoPlaying) startTimer(); }
+
 function togglePlay() {
-  ssPlay = !ssPlay;
+  autoPlaying = !autoPlaying;
   const b = el('btn-pp');
-  if (b) b.textContent = ssPlay ? '⏸ Pause' : '▶ Play';
-  ssPlay ? startTimer() : clearInterval(ssTimer);
+  if (b) b.textContent = autoPlaying ? '⏸' : '▶';
+  autoPlaying ? startTimer() : clearInterval(autoTimer);
 }
+
 function toggleRand() {
-  ssRand = !ssRand;
-  el('btn-rand')?.classList.toggle('btn-on', ssRand);
+  autoRandom = !autoRandom;
+  el('btn-rand')?.classList.toggle('btn-on', autoRandom);
+}
+
+function onSpeedChange(val) {
+  autoDelay = parseInt(val);
+  el('speed-label').textContent = (autoDelay / 1000).toFixed(1) + 's';
+  if (autoPlaying) startTimer();
 }
 
 // ── Purge ─────────────────────────────────────────────────────
@@ -837,14 +810,10 @@ document.addEventListener('keydown', e => {
   switch (e.key) {
     case 'ArrowRight': case 'ArrowDown': e.preventDefault(); nav(1); break;
     case 'ArrowLeft':  case 'ArrowUp':   e.preventDefault(); nav(-1); break;
-    case 'd': case 'D': case 'Delete': case 'Backspace':
-      if (mode === 'cull') { e.preventDefault(); toggleMark(); } break;
-    case 'f': case 'F':
-      if (mode === 'cull') { e.preventDefault(); favoritePhoto(); } break;
-    case ' ':  e.preventDefault(); if (mode === 'ss') togglePlay(); break;
-    case 'r': case 'R': if (mode === 'ss') toggleRand(); break;
-    case 's': case 'S': mode === 'cull' ? enterSS() : enterCull(); break;
-    case 'Escape': if (mode === 'ss') enterCull(); break;
+    case 'd': case 'D': case 'Delete': case 'Backspace': e.preventDefault(); toggleMark(); break;
+    case 'f': case 'F': e.preventDefault(); favoritePhoto(); break;
+    case ' ':  e.preventDefault(); togglePlay(); break;
+    case 'r': case 'R': toggleRand(); break;
   }
 });
 
