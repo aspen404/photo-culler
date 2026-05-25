@@ -391,8 +391,9 @@ let userEmail = '';
 let accessToken = null;
 let tokenClient = null;
 let photos = [], cur = 0, marked = new Set(), favorited = new Set();
-let autoPlaying = true, autoRandom = false, autoDelay = 1000, autoTimer = null;
+let autoPlaying = true, autoRandom = false, autoDelay = 2000, autoTimer = null;
 let rendering = false;
+let favOnly = false;
 const imgCache = new Map(); // fileId → blobURL, max 8 entries
 
 const IMG_MIME = new Set([
@@ -620,7 +621,13 @@ function updateUI() {
   const p = photos[cur];
   const n = marked.size;
 
-  el('progress').textContent = `${cur + 1} / ${photos.length}`;
+  if (favOnly) {
+    const favs = photos.filter(p => favorited.has(p.id));
+    const fi = favs.findIndex(p => p.id === photos[cur]?.id);
+    el('progress').textContent = `${fi + 1} / ${favs.length} ♥`;
+  } else {
+    el('progress').textContent = `${cur + 1} / ${photos.length}`;
+  }
   el('filepath').textContent = p?.path ?? '';
   el('marked-count').textContent = n ? `${n} marked` : '';
 
@@ -646,7 +653,16 @@ function updateUI() {
 
 async function nav(d) {
   if (rendering) return;
-  cur = (cur + d + photos.length) % photos.length;
+  if (favOnly) {
+    let idx = cur, steps = 0;
+    do {
+      idx = (idx + d + photos.length) % photos.length;
+      if (++steps > photos.length) return;
+    } while (!favorited.has(photos[idx].id));
+    cur = idx;
+  } else {
+    cur = (cur + d + photos.length) % photos.length;
+  }
   rendering = true;
   await render();
   rendering = false;
@@ -693,6 +709,10 @@ function buildControls() {
            oninput="onSpeedChange(this.value)">
     <span id="speed-label" class="ctrl-lbl">${(autoDelay/1000).toFixed(1)}s</span>
     <button class="btn btn-ghost" id="btn-rand" onclick="toggleRand()">🔀</button>
+    <div class="sep"></div>
+    <label style="font-size:0.78rem;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none">
+      <input type="checkbox" id="chk-fav-only" onchange="toggleFavOnly(this.checked)"> ♥ only
+    </label>
     <div class="sep"></div>
     <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">Purge</button>
   `;
@@ -789,6 +809,26 @@ async function doPurge() {
   render();
 }
 
+// ── Fav-only filter ───────────────────────────────────────────
+
+function toggleFavOnly(checked) {
+  favOnly = checked;
+  if (favOnly && !favorited.has(photos[cur]?.id)) {
+    const idx = photos.findIndex(p => favorited.has(p.id));
+    if (idx < 0) {
+      favOnly = false;
+      const chk = el('chk-fav-only');
+      if (chk) chk.checked = false;
+      alert('No favorites yet — press F on a photo first.');
+      return;
+    }
+    cur = idx;
+    render();
+  } else {
+    updateUI();
+  }
+}
+
 // ── Favorites ────────────────────────────────────────────────
 
 async function toggleFav() {
@@ -822,7 +862,7 @@ document.addEventListener('keydown', e => {
     case 'ArrowRight': case 'ArrowDown': e.preventDefault(); nav(1); break;
     case 'ArrowLeft':  case 'ArrowUp':   e.preventDefault(); nav(-1); break;
     case 'd': case 'D': case 'Delete': case 'Backspace': e.preventDefault(); toggleMark(); break;
-    case 'f': case 'F': e.preventDefault(); toggleFav(); break;
+    case 'f': case 'F': e.preventDefault(); if (!favorited.has(photos[cur]?.id)) toggleFav(); break;
     case ' ':  e.preventDefault(); togglePlay(); break;
     case 'r': case 'R': toggleRand(); break;
   }
