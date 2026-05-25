@@ -166,7 +166,7 @@ input[type=text]::placeholder { color: #3a3a3a; }
   justify-content: center;
   overflow: hidden;
 }
-#photo {
+#photo, #photo-video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -174,10 +174,11 @@ input[type=text]::placeholder { color: #3a3a3a; }
   display: block;
   transition: opacity 0.15s;
 }
-#photo.dim { opacity: 0.18; }
+#photo.dim, #photo-video.dim { opacity: 0.18; }
 #photo.loading { opacity: 0.15; }
+#photo-video { display: none; }
 
-#del-badge {
+#del-badge, #fav-badge {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -190,19 +191,9 @@ input[type=text]::placeholder { color: #3a3a3a; }
   letter-spacing: 0.06em;
   pointer-events: none;
   display: none;
-  background: rgba(231,76,60,0.93);
 }
-#fav-badge {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  font-size: 1.8rem;
-  color: #e74c3c;
-  pointer-events: none;
-  display: none;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
-  line-height: 1;
-}
+#del-badge { background: rgba(231,76,60,0.93); }
+#fav-badge { background: rgba(39,174,96,0.93); top: calc(50% - 44px); }
 
 #img-loading {
   position: absolute;
@@ -253,6 +244,8 @@ input[type=text]::placeholder { color: #3a3a3a; }
 .btn-ghost { background: transparent; color: #888; border: 1px solid #2e2e2e; }
 .btn-ghost:hover { color: var(--text); border-color: #555; }
 .btn-on { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+.btn-fav { background: #27ae60; color: #fff; }
+.btn-fav-done { background: transparent; color: #27ae60; border: 1px solid #27ae60; }
 .sep { width: 1px; height: 26px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
 .ctrl-lbl { font-size: 0.78rem; color: var(--muted); }
 #speed-label { font-size: 0.78rem; color: var(--muted); min-width: 30px; }
@@ -373,8 +366,9 @@ input[type=range]::-moz-range-thumb {
   </div>
   <div id="viewport">
     <img id="photo" alt="">
+    <video id="photo-video" playsinline muted></video>
     <div id="del-badge">MARKED FOR DELETION</div>
-    <div id="fav-badge">♥</div>
+    <div id="fav-badge">★ FAVORITED</div>
     <div id="img-loading"></div>
   </div>
   <div id="ctrlbar">
@@ -391,9 +385,10 @@ let userEmail = '';
 let accessToken = null;
 let tokenClient = null;
 let photos = [], cur = 0, marked = new Set(), favorited = new Set();
-let autoPlaying = true, autoRandom = false, autoDelay = 2000, autoTimer = null;
+let autoPlaying = true, autoRandom = false, autoDelay = 1000, autoTimer = null;
+let effectiveDelay = 1000; // may be longer for GIFs and videos
 let rendering = false;
-let favOnly = false;
+let favFolderId = null;
 const imgCache = new Map(); // fileId → blobURL, max 8 entries
 
 const IMG_MIME = new Set([
@@ -401,40 +396,20 @@ const IMG_MIME = new Set([
   'image/heic','image/heif','image/bmp','image/tiff','image/avif'
 ]);
 
+const VIDEO_MIME = new Set([
+  'video/mp4','video/webm','video/ogg','video/quicktime',
+  'video/x-msvideo','video/x-matroska','video/3gpp'
+]);
+
 const DEFAULT_CLIENT_ID = '841790868450-avead9q26oaileh9bsamdl1r5lfbssbu.apps.googleusercontent.com';
 
-// Restore saved client ID, then attempt silent re-auth
+// Restore saved client ID
 window.addEventListener('DOMContentLoaded', () => {
   if (!CLIENT_ID) CLIENT_ID = localStorage.getItem('ph_client') || DEFAULT_CLIENT_ID;
   el('cid').value = CLIENT_ID;
   const saved = localStorage.getItem('ph_folder');
   if (saved) el('folder-url').value = saved;
-  if (CLIENT_ID) autoRestore();
 });
-
-function autoRestore() {
-  if (typeof google === 'undefined' || !google.accounts?.oauth2) {
-    setTimeout(autoRestore, 100); return;
-  }
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/userinfo.email'].join(' '),
-    callback: async resp => {
-      if (resp.error) return; // silent failure — stay on setup screen
-      accessToken = resp.access_token;
-      try {
-        const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${accessToken}` } });
-        const d = await r.json();
-        userEmail = d.email || '';
-        el('signed-as').textContent = userEmail ? `Signed in as ${userEmail}` : '';
-      } catch(e) {}
-      const savedFolder = localStorage.getItem('ph_folder');
-      if (savedFolder) { el('folder-url').value = savedFolder; loadFolder(); }
-      else showScreen('s-folder');
-    },
-  });
-  tokenClient.requestAccessToken({ prompt: '' });
-}
 
 // ── Auth ──────────────────────────────────────────────────────
 
@@ -518,8 +493,8 @@ async function* walkFolder(folderId, path = '') {
   for (const f of files) {
     if (f.mimeType === 'application/vnd.google-apps.folder') {
       yield* walkFolder(f.id, path + f.name + '/');
-    } else if (IMG_MIME.has(f.mimeType)) {
-      yield { id: f.id, name: f.name, path: path + f.name };
+    } else if (IMG_MIME.has(f.mimeType) || VIDEO_MIME.has(f.mimeType)) {
+      yield { id: f.id, name: f.name, path: path + f.name, mimeType: f.mimeType };
     }
   }
 }
@@ -551,7 +526,6 @@ async function loadFolder() {
   }
 
   if (!photos.length) { alert('No images found in that folder.'); showScreen('s-folder'); return; }
-  for (const p of photos) { if (p.name.startsWith('_f')) favorited.add(p.id); }
 
   showScreen('app');
   buildControls();
@@ -559,7 +533,7 @@ async function loadFolder() {
 }
 
 function goToFolder() {
-  clearInterval(autoTimer);
+  clearTimeout(autoTimer);
   showScreen('s-folder');
 }
 
@@ -591,25 +565,61 @@ async function render() {
   if (!p) return;
 
   const img = el('photo');
+  const vid = el('photo-video');
   const loader = el('img-loading');
-  const cached = imgCache.has(p.id);
+  const isVideo = VIDEO_MIME.has(p.mimeType);
+  const isGif   = p.mimeType === 'image/gif';
+  const isDel    = marked.has(cur);
 
-  if (!cached) { img.classList.add('loading'); loader.style.display = 'block'; }
+  if (isVideo) {
+    img.style.display = 'none';
+    vid.style.display = 'block';
+    vid.className = isDel ? 'dim' : '';
 
-  try {
-    img.src = await fetchCached(p);
-  } catch(e) {
-    console.warn('render error', e);
-    img.src = '';
-  } finally {
-    img.classList.remove('loading');
-    loader.style.display = 'none';
+    loader.style.display = 'block';
+    try {
+      const url = await fetchCached(p);
+      vid.src = url;
+      vid.load();
+      // Get duration so the timer can cover the full clip
+      effectiveDelay = await new Promise(resolve => {
+        const fallback = setTimeout(() => resolve(Math.max(autoDelay, 10000)), 4000);
+        vid.addEventListener('loadedmetadata', () => {
+          clearTimeout(fallback);
+          resolve(Math.max(autoDelay, Math.ceil(vid.duration * 1000)));
+        }, { once: true });
+      });
+      vid.play().catch(() => {});
+    } catch(e) {
+      console.warn('render error', e);
+      effectiveDelay = Math.max(autoDelay, 10000);
+    } finally {
+      loader.style.display = 'none';
+    }
+  } else {
+    vid.pause();
+    vid.src = '';
+    vid.style.display = 'none';
+    img.style.display = 'block';
+
+    const cached = imgCache.has(p.id);
+    if (!cached) { img.classList.add('loading'); loader.style.display = 'block'; }
+
+    try {
+      img.src = await fetchCached(p);
+    } catch(e) {
+      console.warn('render error', e);
+      img.src = '';
+    } finally {
+      img.classList.remove('loading');
+      loader.style.display = 'none';
+    }
+
+    img.className = isDel ? 'dim' : '';
+    effectiveDelay = isGif ? Math.max(autoDelay, 10000) : autoDelay;
   }
 
-  const isDel = marked.has(cur);
-  img.className = isDel ? 'dim' : '';
   el('del-badge').style.display = isDel ? 'block' : 'none';
-
   updateUI();
 
   // Prefetch next 2
@@ -621,13 +631,7 @@ function updateUI() {
   const p = photos[cur];
   const n = marked.size;
 
-  if (favOnly) {
-    const favs = photos.filter(p => favorited.has(p.id));
-    const fi = favs.findIndex(p => p.id === photos[cur]?.id);
-    el('progress').textContent = `${fi + 1} / ${favs.length} ♥`;
-  } else {
-    el('progress').textContent = `${cur + 1} / ${photos.length}`;
-  }
+  el('progress').textContent = `${cur + 1} / ${photos.length}`;
   el('filepath').textContent = p?.path ?? '';
   el('marked-count').textContent = n ? `${n} marked` : '';
 
@@ -639,13 +643,11 @@ function updateUI() {
   }
   const pb = el('btn-purge');
   if (pb) { pb.style.display = n ? 'inline-block' : 'none'; pb.textContent = `Purge ${n}`; }
-  const isFav = p && favorited.has(p.id);
-  const favBadge = el('fav-badge');
-  if (favBadge) favBadge.style.display = isFav ? 'block' : 'none';
   const fb = el('btn-fav');
   if (fb) {
-    fb.textContent = isFav ? '♥ Fav' : '♡ Fav';
-    fb.className = isFav ? 'btn btn-ghost btn-on' : 'btn btn-ghost';
+    const isFav = favorited.has(photos[cur]?.id);
+    fb.className = isFav ? 'btn btn-fav-done' : 'btn btn-fav';
+    fb.textContent = isFav ? '★ Saved' : '★ Fav';
   }
 }
 
@@ -653,16 +655,7 @@ function updateUI() {
 
 async function nav(d) {
   if (rendering) return;
-  if (favOnly) {
-    let idx = cur, steps = 0;
-    do {
-      idx = (idx + d + photos.length) % photos.length;
-      if (++steps > photos.length) return;
-    } while (!favorited.has(photos[idx].id));
-    cur = idx;
-  } else {
-    cur = (cur + d + photos.length) % photos.length;
-  }
+  cur = (cur + d + photos.length) % photos.length;
   rendering = true;
   await render();
   rendering = false;
@@ -691,7 +684,7 @@ async function toggleMark() {
     el('photo').className = 'dim';
     el('del-badge').style.display = 'block';
     updateUI();
-    setTimeout(() => nav(1), 1000);
+    setTimeout(() => nav(1), 280);
   }
 }
 
@@ -701,7 +694,7 @@ function buildControls() {
   el('ctrls').innerHTML = `
     <button class="btn btn-ghost" onclick="nav(-1)">← Prev</button>
     <button class="btn btn-danger" id="btn-mark" onclick="toggleMark()">🗑 Mark</button>
-    <button class="btn btn-ghost" id="btn-fav"  onclick="toggleFav()">♡ Fav</button>
+    <button class="btn btn-fav"   id="btn-fav"  onclick="favoritePhoto()">★ Fav</button>
     <button class="btn btn-ghost" onclick="nav(1)">Next →</button>
     <div class="sep"></div>
     <button class="btn btn-ghost" id="btn-pp" onclick="togglePlay()">⏸</button>
@@ -709,10 +702,6 @@ function buildControls() {
            oninput="onSpeedChange(this.value)">
     <span id="speed-label" class="ctrl-lbl">${(autoDelay/1000).toFixed(1)}s</span>
     <button class="btn btn-ghost" id="btn-rand" onclick="toggleRand()">🔀</button>
-    <div class="sep"></div>
-    <label style="font-size:0.78rem;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none">
-      <input type="checkbox" id="chk-fav-only" onchange="toggleFavOnly(this.checked)"> ♥ only
-    </label>
     <div class="sep"></div>
     <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">Purge</button>
   `;
@@ -722,11 +711,12 @@ function buildControls() {
 }
 
 // ── Auto-advance timer ────────────────────────────────────────
+// Uses setTimeout (not setInterval) so each item can use its own effectiveDelay.
 
 function startTimer() {
-  clearInterval(autoTimer);
+  clearTimeout(autoTimer);
   if (!autoPlaying) return;
-  autoTimer = setInterval(() => { autoRandom ? navRand() : nav(1); }, autoDelay);
+  autoTimer = setTimeout(() => { autoRandom ? navRand() : nav(1); }, effectiveDelay);
 }
 function resetTimer() { if (autoPlaying) startTimer(); }
 
@@ -734,7 +724,7 @@ function togglePlay() {
   autoPlaying = !autoPlaying;
   const b = el('btn-pp');
   if (b) b.textContent = autoPlaying ? '⏸' : '▶';
-  autoPlaying ? startTimer() : clearInterval(autoTimer);
+  autoPlaying ? startTimer() : clearTimeout(autoTimer);
 }
 
 function toggleRand() {
@@ -744,6 +734,7 @@ function toggleRand() {
 
 function onSpeedChange(val) {
   autoDelay = parseInt(val);
+  effectiveDelay = autoDelay; // will be overridden per-item on next render
   el('speed-label').textContent = (autoDelay / 1000).toFixed(1) + 's';
   if (autoPlaying) startTimer();
 }
@@ -809,46 +800,50 @@ async function doPurge() {
   render();
 }
 
-// ── Fav-only filter ───────────────────────────────────────────
-
-function toggleFavOnly(checked) {
-  favOnly = checked;
-  if (favOnly && !favorited.has(photos[cur]?.id)) {
-    const idx = photos.findIndex(p => favorited.has(p.id));
-    if (idx < 0) {
-      favOnly = false;
-      const chk = el('chk-fav-only');
-      if (chk) chk.checked = false;
-      alert('No favorites yet — press F on a photo first.');
-      return;
-    }
-    cur = idx;
-    render();
-  } else {
-    updateUI();
-  }
-}
-
 // ── Favorites ────────────────────────────────────────────────
 
-async function toggleFav() {
+async function ensureFavFolder() {
+  if (favFolderId) return favFolderId;
+  const params = new URLSearchParams({
+    q: "name='⭐ Favorites' and mimeType='application/vnd.google-apps.folder' and trashed=false and 'root' in parents",
+    fields: 'files(id)',
+    pageSize: '1',
+  });
+  const r = await driveAPI(`https://www.googleapis.com/drive/v3/files?${params}`);
+  const d = await r.json();
+  if (d.files && d.files.length > 0) { favFolderId = d.files[0].id; return favFolderId; }
+  const cr = await driveAPI('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: '⭐ Favorites', mimeType: 'application/vnd.google-apps.folder' }),
+  });
+  const cd = await cr.json();
+  favFolderId = cd.id;
+  return favFolderId;
+}
+
+function favoritePhoto() {
   const p = photos[cur];
-  if (!p) return;
-  const isFav = favorited.has(p.id);
-  const newName = isFav ? p.name.replace(/^_f/, '') : '_f' + p.name;
-  try {
-    const r = await driveAPI(
-      `https://www.googleapis.com/drive/v3/files/${p.id}`,
-      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newName }) }
-    );
-    if (!r.ok) throw new Error(`Rename failed: ${r.status}`);
-    p.path = p.path.replace(/[^/]*$/, newName);
-    p.name = newName;
-    if (isFav) favorited.delete(p.id); else favorited.add(p.id);
-    updateUI();
-  } catch(e) {
-    alert('Could not favorite: ' + e.message);
-  }
+  if (!p || favorited.has(p.id)) return;
+  // Optimistic: update UI instantly
+  favorited.add(p.id);
+  const badge = el('fav-badge');
+  badge.style.display = 'block';
+  setTimeout(() => { badge.style.display = 'none'; }, 1200);
+  updateUI();
+  // API call in background
+  ensureFavFolder()
+    .then(folderId => driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}/copy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parents: [folderId], name: p.name }),
+    }))
+    .catch(e => {
+      console.error('Favorite failed', e);
+      favorited.delete(p.id);
+      updateUI();
+      el('fav-badge').style.display = 'none';
+    });
 }
 
 // ── Keyboard ──────────────────────────────────────────────────
@@ -862,7 +857,7 @@ document.addEventListener('keydown', e => {
     case 'ArrowRight': case 'ArrowDown': e.preventDefault(); nav(1); break;
     case 'ArrowLeft':  case 'ArrowUp':   e.preventDefault(); nav(-1); break;
     case 'd': case 'D': case 'Delete': case 'Backspace': e.preventDefault(); toggleMark(); break;
-    case 'f': case 'F': e.preventDefault(); if (!favorited.has(photos[cur]?.id)) toggleFav(); break;
+    case 'f': case 'F': e.preventDefault(); favoritePhoto(); break;
     case ' ':  e.preventDefault(); togglePlay(); break;
     case 'r': case 'R': toggleRand(); break;
   }
