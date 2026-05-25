@@ -177,7 +177,7 @@ input[type=text]::placeholder { color: #3a3a3a; }
 #photo.dim { opacity: 0.18; }
 #photo.loading { opacity: 0.15; }
 
-#del-badge, #fav-badge {
+#del-badge {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -190,9 +190,19 @@ input[type=text]::placeholder { color: #3a3a3a; }
   letter-spacing: 0.06em;
   pointer-events: none;
   display: none;
+  background: rgba(231,76,60,0.93);
 }
-#del-badge { background: rgba(231,76,60,0.93); }
-#fav-badge { background: rgba(39,174,96,0.93); top: calc(50% - 44px); }
+#fav-badge {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 1.8rem;
+  color: #e74c3c;
+  pointer-events: none;
+  display: none;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  line-height: 1;
+}
 
 #img-loading {
   position: absolute;
@@ -243,8 +253,6 @@ input[type=text]::placeholder { color: #3a3a3a; }
 .btn-ghost { background: transparent; color: #888; border: 1px solid #2e2e2e; }
 .btn-ghost:hover { color: var(--text); border-color: #555; }
 .btn-on { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
-.btn-fav { background: #27ae60; color: #fff; }
-.btn-fav-done { background: transparent; color: #27ae60; border: 1px solid #27ae60; }
 .sep { width: 1px; height: 26px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
 .ctrl-lbl { font-size: 0.78rem; color: var(--muted); }
 #speed-label { font-size: 0.78rem; color: var(--muted); min-width: 30px; }
@@ -366,7 +374,7 @@ input[type=range]::-moz-range-thumb {
   <div id="viewport">
     <img id="photo" alt="">
     <div id="del-badge">MARKED FOR DELETION</div>
-    <div id="fav-badge">★ FAVORITED</div>
+    <div id="fav-badge">♥</div>
     <div id="img-loading"></div>
   </div>
   <div id="ctrlbar">
@@ -385,7 +393,6 @@ let tokenClient = null;
 let photos = [], cur = 0, marked = new Set(), favorited = new Set();
 let autoPlaying = true, autoRandom = false, autoDelay = 1000, autoTimer = null;
 let rendering = false;
-let favFolderId = null;
 const imgCache = new Map(); // fileId → blobURL, max 8 entries
 
 const IMG_MIME = new Set([
@@ -518,6 +525,7 @@ async function loadFolder() {
   }
 
   if (!photos.length) { alert('No images found in that folder.'); showScreen('s-folder'); return; }
+  for (const p of photos) { if (p.name.startsWith('_f')) favorited.add(p.id); }
 
   showScreen('app');
   buildControls();
@@ -599,11 +607,13 @@ function updateUI() {
   }
   const pb = el('btn-purge');
   if (pb) { pb.style.display = n ? 'inline-block' : 'none'; pb.textContent = `Purge ${n}`; }
+  const isFav = p && favorited.has(p.id);
+  const favBadge = el('fav-badge');
+  if (favBadge) favBadge.style.display = isFav ? 'block' : 'none';
   const fb = el('btn-fav');
   if (fb) {
-    const isFav = favorited.has(photos[cur]?.id);
-    fb.className = isFav ? 'btn btn-fav-done' : 'btn btn-fav';
-    fb.textContent = isFav ? '★ Saved' : '★ Fav';
+    fb.textContent = isFav ? '♥ Fav' : '♡ Fav';
+    fb.className = isFav ? 'btn btn-ghost btn-on' : 'btn btn-ghost';
   }
 }
 
@@ -640,7 +650,7 @@ async function toggleMark() {
     el('photo').className = 'dim';
     el('del-badge').style.display = 'block';
     updateUI();
-    setTimeout(() => nav(1), 280);
+    setTimeout(() => nav(1), 1000);
   }
 }
 
@@ -650,7 +660,7 @@ function buildControls() {
   el('ctrls').innerHTML = `
     <button class="btn btn-ghost" onclick="nav(-1)">← Prev</button>
     <button class="btn btn-danger" id="btn-mark" onclick="toggleMark()">🗑 Mark</button>
-    <button class="btn btn-fav"   id="btn-fav"  onclick="favoritePhoto()">★ Fav</button>
+    <button class="btn btn-ghost" id="btn-fav"  onclick="toggleFav()">♡ Fav</button>
     <button class="btn btn-ghost" onclick="nav(1)">Next →</button>
     <div class="sep"></div>
     <button class="btn btn-ghost" id="btn-pp" onclick="togglePlay()">⏸</button>
@@ -756,48 +766,24 @@ async function doPurge() {
 
 // ── Favorites ────────────────────────────────────────────────
 
-async function ensureFavFolder() {
-  if (favFolderId) return favFolderId;
-  const params = new URLSearchParams({
-    q: "name='⭐ Favorites' and mimeType='application/vnd.google-apps.folder' and trashed=false and 'root' in parents",
-    fields: 'files(id)',
-    pageSize: '1',
-  });
-  const r = await driveAPI(`https://www.googleapis.com/drive/v3/files?${params}`);
-  const d = await r.json();
-  if (d.files && d.files.length > 0) { favFolderId = d.files[0].id; return favFolderId; }
-  const cr = await driveAPI('https://www.googleapis.com/drive/v3/files', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: '⭐ Favorites', mimeType: 'application/vnd.google-apps.folder' }),
-  });
-  const cd = await cr.json();
-  favFolderId = cd.id;
-  return favFolderId;
-}
-
-function favoritePhoto() {
+async function toggleFav() {
   const p = photos[cur];
-  if (!p || favorited.has(p.id)) return;
-  // Optimistic: update UI instantly
-  favorited.add(p.id);
-  const badge = el('fav-badge');
-  badge.style.display = 'block';
-  setTimeout(() => { badge.style.display = 'none'; }, 1200);
-  updateUI();
-  // API call in background
-  ensureFavFolder()
-    .then(folderId => driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}/copy`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ parents: [folderId], name: p.name }),
-    }))
-    .catch(e => {
-      console.error('Favorite failed', e);
-      favorited.delete(p.id);
-      updateUI();
-      el('fav-badge').style.display = 'none';
-    });
+  if (!p) return;
+  const isFav = favorited.has(p.id);
+  const newName = isFav ? p.name.replace(/^_f/, '') : '_f' + p.name;
+  try {
+    const r = await driveAPI(
+      `https://www.googleapis.com/drive/v3/files/${p.id}`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newName }) }
+    );
+    if (!r.ok) throw new Error(`Rename failed: ${r.status}`);
+    p.path = p.path.replace(/[^/]*$/, newName);
+    p.name = newName;
+    if (isFav) favorited.delete(p.id); else favorited.add(p.id);
+    updateUI();
+  } catch(e) {
+    alert('Could not favorite: ' + e.message);
+  }
 }
 
 // ── Keyboard ──────────────────────────────────────────────────
@@ -811,7 +797,7 @@ document.addEventListener('keydown', e => {
     case 'ArrowRight': case 'ArrowDown': e.preventDefault(); nav(1); break;
     case 'ArrowLeft':  case 'ArrowUp':   e.preventDefault(); nav(-1); break;
     case 'd': case 'D': case 'Delete': case 'Backspace': e.preventDefault(); toggleMark(); break;
-    case 'f': case 'F': e.preventDefault(); favoritePhoto(); break;
+    case 'f': case 'F': e.preventDefault(); toggleFav(); break;
     case ' ':  e.preventDefault(); togglePlay(); break;
     case 'r': case 'R': toggleRand(); break;
   }
