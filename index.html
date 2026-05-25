@@ -402,13 +402,38 @@ const IMG_MIME = new Set([
 
 const DEFAULT_CLIENT_ID = '841790868450-avead9q26oaileh9bsamdl1r5lfbssbu.apps.googleusercontent.com';
 
-// Restore saved client ID
+// Restore saved client ID, then attempt silent re-auth
 window.addEventListener('DOMContentLoaded', () => {
   if (!CLIENT_ID) CLIENT_ID = localStorage.getItem('ph_client') || DEFAULT_CLIENT_ID;
   el('cid').value = CLIENT_ID;
   const saved = localStorage.getItem('ph_folder');
   if (saved) el('folder-url').value = saved;
+  if (CLIENT_ID) autoRestore();
 });
+
+function autoRestore() {
+  if (typeof google === 'undefined' || !google.accounts?.oauth2) {
+    setTimeout(autoRestore, 100); return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/userinfo.email'].join(' '),
+    callback: async resp => {
+      if (resp.error) return; // silent failure — stay on setup screen
+      accessToken = resp.access_token;
+      try {
+        const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${accessToken}` } });
+        const d = await r.json();
+        userEmail = d.email || '';
+        el('signed-as').textContent = userEmail ? `Signed in as ${userEmail}` : '';
+      } catch(e) {}
+      const savedFolder = localStorage.getItem('ph_folder');
+      if (savedFolder) { el('folder-url').value = savedFolder; loadFolder(); }
+      else showScreen('s-folder');
+    },
+  });
+  tokenClient.requestAccessToken({ prompt: '' });
+}
 
 // ── Auth ──────────────────────────────────────────────────────
 
