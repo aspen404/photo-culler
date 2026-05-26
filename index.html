@@ -385,7 +385,7 @@ let userEmail = '';
 let accessToken = null;
 let tokenClient = null;
 let photos = [], cur = 0, marked = new Set(), favorited = new Set();
-let autoPlaying = true, autoRandom = false, autoDelay = 1000, autoTimer = null;
+let autoPlaying = true, autoRandom = false, autoDelay = 1000, autoTimer = null, favOnly = false;
 let effectiveDelay = 1000; // may be longer for GIFs and videos
 let rendering = false;
 let favFolderId = null;
@@ -653,9 +653,19 @@ function updateUI() {
 
 // ── Navigation ────────────────────────────────────────────────
 
+function photoOk(idx) {
+  if (favOnly && !favorited.has(photos[idx].id)) return false;
+  return true;
+}
+
 async function nav(d) {
   if (rendering) return;
-  cur = (cur + d + photos.length) % photos.length;
+  let idx = cur, steps = 0;
+  do {
+    idx = (idx + d + photos.length) % photos.length;
+    if (++steps > photos.length) return;
+  } while (!photoOk(idx));
+  cur = idx;
   rendering = true;
   await render();
   rendering = false;
@@ -663,12 +673,25 @@ async function nav(d) {
 }
 
 async function navRand() {
-  const pool = photos.map((_, i) => i).filter(i => i !== cur);
+  const pool = photos.map((_, i) => i).filter(i => photoOk(i) && i !== cur);
   if (!pool.length) return;
   cur = pool[Math.floor(Math.random() * pool.length)];
   rendering = true;
   await render();
   rendering = false;
+}
+
+function toggleFavOnly() {
+  favOnly = el('cb-fav-only').checked;
+  if (favOnly && !photoOk(cur)) {
+    let idx = cur, steps = 0;
+    do {
+      idx = (idx + 1) % photos.length;
+      if (++steps > photos.length) { favOnly = false; el('cb-fav-only').checked = false; return; }
+    } while (!photoOk(idx));
+    cur = idx;
+    render();
+  }
 }
 
 // ── Mark ──────────────────────────────────────────────────────
@@ -702,6 +725,9 @@ function buildControls() {
            oninput="onSpeedChange(this.value)">
     <span id="speed-label" class="ctrl-lbl">${(autoDelay/1000).toFixed(1)}s</span>
     <button class="btn btn-ghost" id="btn-rand" onclick="toggleRand()">🔀</button>
+    <label class="ctrl-lbl" style="cursor:pointer;display:flex;align-items:center;gap:4px">
+      <input type="checkbox" id="cb-fav-only" onchange="toggleFavOnly()" ${favOnly ? 'checked' : ''}> ♥ Favs only
+    </label>
     <div class="sep"></div>
     <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">Purge</button>
   `;
