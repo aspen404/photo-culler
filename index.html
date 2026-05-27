@@ -20,46 +20,33 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  height: 100vh;
-  height: 100dvh;
+  height: 100vh; height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* ── Screens ─────────────────────────────────────────────────── */
-.screen {
+/* ── Generic screen helpers ──────────────────────────────────── */
+.centered-screen {
   display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  height: 100dvh;
+  height: 100vh; height: 100dvh;
   padding: 24px;
   gap: 18px;
   text-align: center;
 }
-.screen.active { display: flex; }
+.centered-screen.active { display: flex; }
 h1 { font-size: 2rem; font-weight: 200; }
 .sub { color: var(--muted); font-size: 0.88rem; max-width: 480px; line-height: 1.6; }
 .fine { color: #333; font-size: 0.72rem; }
 
 details {
-  background: #111;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 16px;
-  max-width: 540px;
-  width: 100%;
-  text-align: left;
+  background: #111; border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 16px; max-width: 540px; width: 100%; text-align: left;
 }
-summary {
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: var(--accent);
-  user-select: none;
-  list-style: none;
-}
+summary { cursor: pointer; font-size: 0.85rem; color: var(--accent); user-select: none; list-style: none; }
 summary::before { content: '▶ '; font-size: 0.7rem; }
 details[open] summary::before { content: '▼ '; }
 .steps { margin-top: 14px; font-size: 0.82rem; line-height: 1.8; color: var(--muted); counter-reset: step; }
@@ -67,44 +54,21 @@ details[open] summary::before { content: '▼ '; }
 .steps li::marker { content: counter(step) '. '; color: var(--accent); }
 .steps li + li { margin-top: 4px; }
 code {
-  background: #1e1e1e;
-  border: 1px solid #2a2a2a;
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 0.8rem;
-  color: #adf;
+  background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 4px;
+  padding: 1px 6px; font-size: 0.8rem; color: #adf;
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 .cmd {
-  display: block;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin: 8px 0;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 0.8rem;
-  color: #8df;
-  user-select: all;
+  display: block; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px;
+  padding: 8px 12px; margin: 8px 0; font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem; color: #8df; user-select: all;
 }
 .note { color: #e9a84c; font-size: 0.78rem; margin-top: 8px; }
 
-.field {
-  display: flex;
-  gap: 8px;
-  max-width: 520px;
-  width: 100%;
-}
+.field { display: flex; gap: 8px; max-width: 520px; width: 100%; }
 input[type=text] {
-  flex: 1;
-  background: #111;
-  border: 1px solid #2e2e2e;
-  border-radius: 6px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 0.85rem;
-  padding: 9px 12px;
-  outline: none;
+  flex: 1; background: #111; border: 1px solid #2e2e2e; border-radius: 6px;
+  color: var(--text); font-family: inherit; font-size: 0.85rem; padding: 9px 12px; outline: none;
 }
 input[type=text]:focus { border-color: var(--accent); }
 input[type=text]::placeholder { color: #3a3a3a; }
@@ -113,9 +77,7 @@ input[type=text]::placeholder { color: #3a3a3a; }
 #s-browse {
   display: none;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  background: var(--bg);
+  height: 100vh; height: 100dvh;
 }
 #s-browse.active { display: flex; }
 
@@ -127,222 +89,248 @@ input[type=text]::placeholder { color: #3a3a3a; }
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  min-height: 52px;
+  min-height: 50px;
 }
-#browse-back-btn {
+.browse-hdr-btn {
   background: none;
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 1rem;
+  padding: 5px 11px;
+  font-size: 0.88rem;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  font-family: inherit;
 }
-#browse-back-btn:disabled { opacity: 0.25; cursor: default; }
-#browse-back-btn:not(:disabled):hover { border-color: #555; }
+.browse-hdr-btn:disabled { opacity: 0.25; cursor: default; }
+.browse-hdr-btn:not(:disabled):hover { border-color: #555; }
 
 #browse-breadcrumb {
-  flex: 1;
-  font-size: 0.8rem;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
+  flex: 1; font-size: 0.78rem; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
-#browse-userinfo {
-  font-size: 0.72rem;
-  color: #333;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+#browse-userinfo { font-size: 0.7rem; color: #333; white-space: nowrap; flex-shrink: 0; }
 
+/* Jump bar (desktop only) */
 #browse-jump {
-  display: flex;
-  gap: 8px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  display: flex; gap: 8px; padding: 7px 14px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 #browse-jump input { flex: 1; font-size: 0.8rem; }
 #browse-jump button {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  white-space: nowrap;
-  font-family: inherit;
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; cursor: pointer;
+  white-space: nowrap; font-family: inherit;
 }
 #browse-jump button:hover { border-color: #555; color: var(--text); }
 
-#browse-content {
+/* Main area: left grid + right sidebar */
+#browse-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+#browse-left {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-}
-
-.browse-empty {
-  padding: 40px 24px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.8;
-}
-.browse-spinner {
-  display: flex;
-  justify-content: center;
-  padding: 48px;
-}
-
-.folder-row {
-  display: flex;
-  align-items: center;
-  padding: 0 14px 0 10px;
-  min-height: 54px;
-  border-bottom: 1px solid #181818;
-  gap: 2px;
-  user-select: none;
-}
-.folder-row:active { background: #1a1a1a; }
-
-.folder-check-area {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  min-height: 54px;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-.folder-check {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--accent);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.folder-tap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
+  padding: 8px;
   min-width: 0;
-  min-height: 54px;
-  cursor: pointer;
-  padding: 4px 0;
 }
-.folder-icon { font-size: 1.2rem; flex-shrink: 0; }
-.folder-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.92rem;
-}
-.folder-drill {
-  color: #3a3a3a;
-  background: none;
-  border: none;
-  font-size: 1.3rem;
-  padding: 8px 4px 8px 8px;
-  cursor: pointer;
+#browse-right {
+  width: 210px;
   flex-shrink: 0;
-  line-height: 1;
+  border-left: 1px solid var(--border);
+  background: #0f0f0f;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.folder-tap:hover .folder-drill { color: var(--muted); }
-
-#browse-footer {
+#sel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-#browse-sel-info {
-  font-size: 0.85rem;
-  color: var(--muted);
+#sel-title { font-size: 0.8rem; color: var(--muted); }
+#btn-clear-all {
+  font-size: 0.72rem; color: var(--danger); background: none; border: none;
+  cursor: pointer; padding: 2px 4px; font-family: inherit;
+}
+#btn-clear-all:hover { opacity: 0.7; }
+#sel-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+.sel-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 12px;
+  border-bottom: 1px solid #181818;
+}
+.sel-item-name {
   flex: 1;
   min-width: 0;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sel-item-path {
+  font-size: 0.66rem;
+  color: #3a3a3a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sel-item-remove {
+  background: none; border: none; color: #444; cursor: pointer;
+  font-size: 1rem; padding: 2px 4px; line-height: 1; flex-shrink: 0;
+}
+.sel-item-remove:hover { color: var(--danger); }
+#sel-empty {
+  padding: 20px 12px;
+  font-size: 0.78rem;
+  color: #333;
+  text-align: center;
+  line-height: 1.7;
+}
+.sel-item-wrap { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+/* Folder tiles */
+.ftile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+  gap: 7px;
+}
+.ftile {
+  position: relative;
+  background: #1a1a1a;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.1s, background 0.1s;
+  overflow: hidden;
+}
+.ftile:active { transform: scale(0.93); }
+.ftile:hover { background: #222; }
+.ftile.ftile-sel {
+  border-color: var(--accent);
+  background: rgba(79,142,247,0.11);
+}
+.ftile-icon { font-size: 1.7rem; line-height: 1; pointer-events: none; }
+.ftile-name {
+  font-size: 0.66rem;
+  text-align: center;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+  pointer-events: none;
+}
+/* Selection toggle in top-right corner */
+.ftile-sel-btn {
+  position: absolute;
+  top: 0; right: 0;
+  width: 34px; height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: #333;
+  border-radius: 0 8px 0 8px;
+}
+.ftile-sel-btn:hover { color: var(--accent); }
+.ftile.ftile-sel .ftile-sel-btn { color: var(--accent); font-size: 1.1rem; }
+
+.browse-spinner { display: flex; justify-content: center; padding: 40px; }
+.browse-empty {
+  padding: 40px 16px; text-align: center;
+  color: var(--muted); font-size: 0.88rem; line-height: 1.8;
 }
 
 /* ── Loading overlay ─────────────────────────────────────────── */
 #s-loading {
   display: none;
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background: rgba(0,0,0,0.93);
   z-index: 500;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
+  flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
 .spinner {
   width: 32px; height: 32px;
-  border: 3px solid #2a2a2a;
-  border-top-color: var(--accent);
+  border: 3px solid #2a2a2a; border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── App ─────────────────────────────────────────────────────── */
-#app {
-  display: none;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
+/* ── Browse footer ───────────────────────────────────────────── */
+#browse-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
+#browse-sel-info { flex: 1; font-size: 0.85rem; color: var(--muted); min-width: 0; }
+
+/* ── App ─────────────────────────────────────────────────────── */
+#app { display: none; flex-direction: column; height: 100vh; height: 100dvh; }
 #app.active { display: flex; }
 
 #topbar {
   display: flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 5px 10px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   gap: 8px;
   flex-shrink: 0;
-  height: 40px;
+  height: 42px;
 }
-#progress { font-size: 0.78rem; color: var(--muted); white-space: nowrap; min-width: 60px; }
-#filepath {
-  flex: 1;
-  font-size: 0.7rem;
-  color: #3d3d3d;
-  overflow: hidden;
-  text-overflow: ellipsis;
+#btn-change-folder {
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
   white-space: nowrap;
-  text-align: center;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+#btn-change-folder:hover { border-color: #555; color: var(--text); }
+#progress { font-size: 0.78rem; color: var(--muted); white-space: nowrap; min-width: 56px; }
+#filepath {
+  flex: 1; font-size: 0.7rem; color: #3a3a3a;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
 }
 #marked-count { font-size: 0.78rem; color: var(--danger); white-space: nowrap; }
-#btn-change-folder { font-size: 0.7rem; color: #2a2a2a; background: none; border: none; cursor: pointer; white-space: nowrap; padding: 2px 4px; }
-#btn-change-folder:hover { color: #555; }
 
 #viewport {
-  flex: 1;
-  position: relative;
-  background: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  touch-action: pan-y;
+  flex: 1; position: relative; background: #000;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; touch-action: pan-y;
 }
 #photo {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  user-select: none;
-  display: block;
+  max-width: 100%; max-height: 100%; object-fit: contain;
+  user-select: none; display: block;
   transition: opacity 0.15s, transform 0.15s;
   will-change: transform;
 }
@@ -351,168 +339,93 @@ input[type=text]::placeholder { color: #3a3a3a; }
 #photo.swiping { transition: none; }
 
 #del-badge {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+  position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(231,76,60,0.93);
-  color: #fff;
-  padding: 10px 24px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 0.06em;
-  pointer-events: none;
-  display: none;
+  background: rgba(231,76,60,0.93); color: #fff;
+  padding: 10px 24px; border-radius: 8px;
+  font-weight: 700; font-size: 1rem; letter-spacing: 0.06em;
+  pointer-events: none; display: none;
 }
 #fav-badge {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  font-size: 1.8rem;
-  color: var(--fav);
-  pointer-events: none;
-  display: none;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
-  line-height: 1;
+  position: absolute; top: 12px; right: 14px;
+  font-size: 1.8rem; color: var(--fav);
+  pointer-events: none; display: none;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9); line-height: 1;
 }
 #folder-badge {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  background: rgba(0,0,0,0.55);
-  color: rgba(255,255,255,0.75);
-  font-size: 0.72rem;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  padding: 4px 8px;
-  border-radius: 5px;
-  pointer-events: none;
-  display: none;
-  max-width: calc(100% - 20px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  position: absolute; bottom: 10px; left: 10px;
+  background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.75);
+  font-size: 0.72rem; font-family: 'SF Mono', 'Fira Code', monospace;
+  padding: 4px 8px; border-radius: 5px;
+  pointer-events: none; display: none;
+  max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 #img-loading {
-  position: absolute;
-  width: 24px; height: 24px;
-  border: 2px solid #222;
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  display: none;
+  position: absolute; width: 24px; height: 24px;
+  border: 2px solid #222; border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
 }
 
 /* ── Control bar ─────────────────────────────────────────────── */
-#ctrlbar {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
+#ctrlbar { background: var(--surface); border-top: 1px solid var(--border); flex-shrink: 0; }
+#ctrls { display: flex; flex-direction: column; padding: 8px 12px 4px; gap: 4px; }
+#hints { text-align: center; font-size: 0.64rem; color: #2d2d2d; padding: 2px 0 6px; letter-spacing: 0.04em; }
+
+.ctrl-main {
+  display: flex; gap: 6px; justify-content: center;
 }
-#ctrls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px 4px;
-  flex-wrap: wrap;
+.ctrl-main .btn {
+  flex: 1; max-width: 90px; height: 52px;
+  font-size: 1.05rem;
 }
-#hints {
-  text-align: center;
-  font-size: 0.64rem;
-  color: #2d2d2d;
-  padding: 2px 0 6px;
-  letter-spacing: 0.04em;
+.ctrl-sec { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.ctrl-sec .btn { height: 34px; font-size: 0.78rem; padding: 0 10px; }
+.ctrl-sec select {
+  height: 34px; background: #1a1a1a; color: var(--text);
+  border: 1px solid #2e2e2e; border-radius: 5px;
+  font-size: 0.78rem; font-family: inherit; cursor: pointer; padding: 0 6px;
 }
+.ctrl-lbl { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
 .btn {
-  padding: 0 14px;
-  height: 40px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-family: inherit;
-  white-space: nowrap;
-  transition: opacity 0.1s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  padding: 0 14px; height: 40px; border: none; border-radius: 8px;
+  cursor: pointer; font-size: 0.85rem; font-family: inherit; white-space: nowrap;
+  transition: opacity 0.1s; display: inline-flex; align-items: center;
+  justify-content: center; gap: 5px;
 }
 .btn:active { transform: scale(0.95); }
 .btn:hover { opacity: 0.85; }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-danger  { background: var(--danger); color: #fff; }
-.btn-ghost   { background: transparent; color: #888; border: 1px solid #2e2e2e; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.btn-primary  { background: var(--accent); color: #fff; }
+.btn-danger   { background: var(--danger); color: #fff; }
+.btn-ghost    { background: transparent; color: #888; border: 1px solid #2e2e2e; }
 .btn-ghost:hover { color: var(--text); border-color: #555; }
-.btn-on { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
-.btn-fav-on { background: var(--fav) !important; color: #fff !important; border-color: var(--fav) !important; }
-.sep { width: 1px; height: 28px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
-
-/* Main action row — big on mobile */
-.ctrl-main {
-  display: flex;
-  gap: 6px;
-  width: 100%;
-  justify-content: center;
-}
-.ctrl-main .btn {
-  flex: 1;
-  max-width: 90px;
-  height: 52px;
-  font-size: 1.1rem;
-}
-.ctrl-sec {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  padding: 0 12px 6px;
-  flex-wrap: wrap;
-}
-.ctrl-sec .btn {
-  height: 34px;
-  font-size: 0.78rem;
-  padding: 0 10px;
-}
-
-select {
-  background: #1a1a1a; color: var(--text);
-  border: 1px solid #2e2e2e; padding: 5px 8px;
-  border-radius: 5px; font-size: 0.8rem; font-family: inherit; cursor: pointer;
-  height: 34px;
-}
-.ctrl-lbl { font-size: 0.78rem; color: var(--muted); }
+.btn-on       { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+.btn-fav-on   { background: var(--fav) !important; color: #fff !important; border-color: var(--fav) !important; }
+.sep { width: 1px; height: 28px; background: var(--border); margin: 0 2px; flex-shrink: 0; align-self: center; }
 
 /* ── Modal ───────────────────────────────────────────────────── */
 #modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.88);
-  z-index: 400;
-  align-items: center;
-  justify-content: center;
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88); z-index: 400;
+  align-items: center; justify-content: center;
 }
 #modal-box {
-  background: #1c1c1c;
-  border: 1px solid #333;
-  border-radius: 12px;
-  padding: 28px;
-  max-width: 400px;
-  width: 90%;
+  background: #1c1c1c; border: 1px solid #333; border-radius: 12px;
+  padding: 28px; max-width: 400px; width: 90%;
 }
 #modal-box h2 { font-weight: 400; margin-bottom: 10px; }
 #modal-body { color: var(--muted); font-size: 0.88rem; line-height: 1.5; margin-bottom: 22px; }
 .modal-row { display: flex; gap: 10px; justify-content: flex-end; }
 
-/* ── Responsive tweaks ───────────────────────────────────────── */
-@media (max-width: 480px) {
-  .ctrl-main .btn { font-size: 1.3rem; }
-  #hints { display: none; }
-  #filepath { display: none; }
-  #browse-jump { display: none; }  /* hide URL jump on small screens */
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  #browse-right { display: none; }
+  #browse-jump  { display: none; }
+  #hints        { display: none; }
+  #filepath     { display: none; }
+  .ctrl-main .btn { font-size: 1.2rem; }
 }
 @media (min-width: 600px) {
   .ctrl-main .btn { max-width: 120px; }
@@ -522,7 +435,7 @@ select {
 <body>
 
 <!-- ── Screen: Setup ─────────────────────────────────────────── -->
-<div id="s-setup" class="screen active">
+<div id="s-setup" class="centered-screen active">
   <div style="font-size:2.8rem">📷</div>
   <h1>Photo Culler</h1>
   <p class="sub">Browse and cull photos stored in Google Drive. Sign in once, then pick any folders.</p>
@@ -530,20 +443,19 @@ select {
   <details>
     <summary>One-time setup — get your OAuth Client ID</summary>
     <ol class="steps">
-      <li>Go to <code>console.cloud.google.com</code> and create a new project.</li>
+      <li>Go to <code>console.cloud.google.com</code> → create a new project.</li>
       <li>Search <strong>Google Drive API</strong> → Enable it.</li>
       <li>Go to <strong>APIs &amp; Services → OAuth consent screen</strong>.<br>
           Choose <em>External</em>, fill in app name, add your email as a <strong>Test user</strong>.</li>
       <li>Go to <strong>Credentials → Create Credentials → OAuth 2.0 Client ID</strong>.<br>
           Type: <em>Web application</em>.</li>
-      <li>Under <strong>Authorized JavaScript origins</strong>, add:
-          <code>http://localhost:8080</code></li>
+      <li>Under <strong>Authorized JavaScript origins</strong>, add:<br>
+          <code>http://localhost:8080</code> and <code>https://aspen404.github.io</code></li>
       <li>Save → copy the <strong>Client ID</strong> (ends in <code>.apps.googleusercontent.com</code>).</li>
-      <li>Serve this file locally — run in the same folder as this HTML:
-          <span class="cmd">python3 -m http.server 8080</span></li>
+      <li>Serve locally: <span class="cmd">python3 -m http.server 8080</span></li>
       <li>Open <code>http://localhost:8080/photo-culler.html</code> in Chrome.</li>
     </ol>
-    <p class="note">⚠ This file must be served from localhost — opening it as a file:// URL won't work for OAuth.</p>
+    <p class="note">⚠ Must be served from a registered origin — file:// URLs won't work for OAuth.</p>
   </details>
 
   <div class="field">
@@ -553,23 +465,41 @@ select {
   <p class="fine">Access token stays in memory only · Never leaves your browser</p>
 </div>
 
-<!-- ── Screen: Browse ────────────────────────────────────────── -->
+<!-- ── Screen: Browse (split-screen) ─────────────────────────── -->
 <div id="s-browse">
   <div id="browse-header">
-    <button id="browse-back-btn" onclick="browseBack()" disabled>← Back</button>
+    <button class="browse-hdr-btn" id="browse-back-btn" onclick="browseBack()" disabled>← Back</button>
     <div id="browse-breadcrumb">My Drive</div>
     <div id="browse-userinfo"></div>
   </div>
-  <!-- Jump to folder URL (hidden on small screens) -->
+
   <div id="browse-jump">
     <input type="text" id="jump-url" placeholder="Paste a folder URL or ID to jump to it">
     <button onclick="jumpToURL()">Go</button>
   </div>
-  <div id="browse-content">
-    <div class="browse-spinner"><div class="spinner"></div></div>
+
+  <div id="browse-main">
+    <!-- Left: folder tile grid -->
+    <div id="browse-left">
+      <div id="ftile-grid" class="ftile-grid">
+        <div class="browse-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Right: selection sidebar -->
+    <div id="browse-right">
+      <div id="sel-header">
+        <span id="sel-title">Selected</span>
+        <button id="btn-clear-all" onclick="clearAllFolders()">Clear all</button>
+      </div>
+      <div id="sel-list"></div>
+      <div id="sel-empty">No folders selected yet.<br>Tap ✚ on a tile to add it.</div>
+    </div>
   </div>
+
   <div id="browse-footer">
     <div id="browse-sel-info">No folders selected</div>
+    <button class="btn btn-ghost" onclick="clearAllFolders()" id="btn-footer-clear" style="display:none">Clear</button>
     <button class="btn btn-primary" id="btn-load-sel" onclick="loadSelectedFolders()" disabled>Load Photos</button>
   </div>
 </div>
@@ -596,10 +526,10 @@ select {
 <!-- ── App ───────────────────────────────────────────────────── -->
 <div id="app">
   <div id="topbar">
+    <button id="btn-change-folder" onclick="goToFolder()" title="Back to folder selection">⌂ Folders</button>
     <div id="progress">– / –</div>
     <div id="filepath"></div>
     <div id="marked-count"></div>
-    <button id="btn-change-folder" onclick="goToFolder()">change folders</button>
   </div>
   <div id="viewport">
     <img id="photo" alt="">
@@ -614,8 +544,7 @@ select {
   </div>
 </div>
 
-<script src="https://accounts.google.com/gsi/client" async
-  onload="onGSILoad()"></script>
+<script src="https://accounts.google.com/gsi/client" async onload="onGSILoad()"></script>
 <script>
 // ── State ─────────────────────────────────────────────────────
 const DEFAULT_CLIENT_ID = '841790868450-avead9q26oaileh9bsamdl1r5lfbssbu.apps.googleusercontent.com';
@@ -624,12 +553,11 @@ let userEmail = '';
 let accessToken = null;
 let tokenClient = null;
 
-// Browse state
-let browseStack = [];          // [{id, name}] — navigation breadcrumb
-let browseFolders = [];        // folders visible in current view
+// Browse
+let browseStack = [];            // [{id, name}]
 let selectedFolders = new Map(); // id -> {id, name, path}
 
-// Photos / viewer state
+// Viewer
 let photos = [], cur = 0, marked = new Set(), favorites = new Set();
 let mode = 'cull';
 let ssPlay = true, ssRand = false, ssTimer = null, ssFavOnly = false;
@@ -646,18 +574,14 @@ const IMG_MIME = new Set([
 
 window.addEventListener('DOMContentLoaded', () => {
   if (CLIENT_ID) el('cid').value = CLIENT_ID;
-  // Restore saved folder selections
   try {
     const saved = localStorage.getItem('ph_selected_folders');
-    if (saved) {
-      const arr = JSON.parse(saved);
-      arr.forEach(f => selectedFolders.set(f.id, f));
-    }
-  } catch(e) { /* ignore */ }
+    if (saved) JSON.parse(saved).forEach(f => selectedFolders.set(f.id, f));
+  } catch(e) {}
+  updateBrowseFooter();
 });
 
 function onGSILoad() {
-  // Try silent re-auth if we have a saved client ID
   if (CLIENT_ID) tryAutoAuth();
 }
 
@@ -665,16 +589,14 @@ function tryAutoAuth() {
   if (!CLIENT_ID || !window.google?.accounts?.oauth2) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
-    scope: [
-      'https://www.googleapis.com/auth/drive',
-      'https://www.googleapis.com/auth/userinfo.email',
-    ].join(' '),
+    scope: ['https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/userinfo.email'].join(' '),
     callback: async resp => {
-      if (resp.error) return; // silent fail — stay on setup screen
+      if (resp.error) return;
       accessToken = resp.access_token;
       await fetchUserEmail();
       showScreen('s-browse');
-      loadBrowseFolders('root', 'My Drive');
+      loadBrowseFolders(currentBrowseId(), currentBrowseName());
     },
   });
   tokenClient.requestAccessToken({ prompt: '' });
@@ -686,13 +608,10 @@ function signIn() {
   CLIENT_ID = el('cid').value.trim();
   if (!CLIENT_ID) { alert('Paste your OAuth Client ID first.'); return; }
   localStorage.setItem('ph_client', CLIENT_ID);
-
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
-    scope: [
-      'https://www.googleapis.com/auth/drive',
-      'https://www.googleapis.com/auth/userinfo.email',
-    ].join(' '),
+    scope: ['https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/userinfo.email'].join(' '),
     callback: async resp => {
       if (resp.error) { alert('Sign-in failed: ' + resp.error); return; }
       accessToken = resp.access_token;
@@ -711,7 +630,7 @@ async function fetchUserEmail() {
     const d = await r.json();
     userEmail = d.email || '';
     el('browse-userinfo').textContent = userEmail;
-  } catch(e) { /* non-critical */ }
+  } catch(e) {}
 }
 
 function reauth() {
@@ -732,12 +651,29 @@ function reauth() {
 
 async function driveAPI(url, opts = {}) {
   const doFetch = () => fetch(url, {
-    ...opts,
-    headers: { Authorization: `Bearer ${accessToken}`, ...opts.headers }
+    ...opts, headers: { Authorization: `Bearer ${accessToken}`, ...opts.headers }
   });
   let r = await doFetch();
   if (r.status === 401) { await reauth(); r = await doFetch(); }
   return r;
+}
+
+async function listFolders(folderId) {
+  let all = [], pageToken = '';
+  do {
+    const params = new URLSearchParams({
+      q: `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      fields: 'nextPageToken,files(id,name)',
+      pageSize: '1000', orderBy: 'name',
+      ...(pageToken && { pageToken }),
+    });
+    const r = await driveAPI(`https://www.googleapis.com/drive/v3/files?${params}`);
+    if (!r.ok) throw new Error(`Drive API ${r.status}: ${await r.text()}`);
+    const d = await r.json();
+    all = all.concat(d.files || []);
+    pageToken = d.nextPageToken || '';
+  } while (pageToken);
+  return all;
 }
 
 async function listFiles(folderId) {
@@ -750,26 +686,7 @@ async function listFiles(folderId) {
       ...(pageToken && { pageToken }),
     });
     const r = await driveAPI(`https://www.googleapis.com/drive/v3/files?${params}`);
-    if (!r.ok) throw new Error(`Drive API error ${r.status}: ${await r.text()}`);
-    const d = await r.json();
-    all = all.concat(d.files || []);
-    pageToken = d.nextPageToken || '';
-  } while (pageToken);
-  return all;
-}
-
-async function listFolders(folderId) {
-  let all = [], pageToken = '';
-  do {
-    const params = new URLSearchParams({
-      q: `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-      fields: 'nextPageToken,files(id,name)',
-      pageSize: '1000',
-      orderBy: 'name',
-      ...(pageToken && { pageToken }),
-    });
-    const r = await driveAPI(`https://www.googleapis.com/drive/v3/files?${params}`);
-    if (!r.ok) throw new Error(`Drive API error ${r.status}: ${await r.text()}`);
+    if (!r.ok) throw new Error(`Drive API ${r.status}: ${await r.text()}`);
     const d = await r.json();
     all = all.concat(d.files || []);
     pageToken = d.nextPageToken || '';
@@ -791,76 +708,74 @@ async function* walkFolder(folderId, path = '') {
 
 // ── Browse screen ─────────────────────────────────────────────
 
-async function loadBrowseFolders(folderId, name) {
-  const bc = el('browse-content');
-  bc.innerHTML = '<div class="browse-spinner"><div class="spinner"></div></div>';
+function currentBrowseId()   { return browseStack.length ? browseStack[browseStack.length - 1].id   : 'root'; }
+function currentBrowseName() { return browseStack.length ? browseStack[browseStack.length - 1].name : 'My Drive'; }
 
+async function loadBrowseFolders(folderId, folderName) {
+  const grid = el('ftile-grid');
+  grid.innerHTML = '<div class="browse-spinner"><div class="spinner"></div></div>';
   try {
-    browseFolders = await listFolders(folderId);
-    renderBrowseItems(browseFolders, folderId, name);
+    const folders = await listFolders(folderId);
+    renderFolderTiles(folders, folderName);
   } catch(e) {
-    bc.innerHTML = `<div class="browse-empty">⚠ Could not load folder: ${e.message}</div>`;
+    grid.innerHTML = `<div class="browse-empty">⚠ Could not load: ${escHtml(e.message)}</div>`;
   }
 }
 
-function renderBrowseItems(folders, currentId, currentName) {
-  const bc = el('browse-content');
+function renderFolderTiles(folders, currentName) {
+  const grid = el('ftile-grid');
   if (!folders.length) {
-    bc.innerHTML = `
-      <div class="browse-empty">
-        📷 No subfolders here.<br>
-        <small>To include photos directly in this folder, select it from the level above.</small>
-      </div>`;
+    grid.innerHTML = `<div class="browse-empty">📷 No subfolders here.<br>
+      <small>Select the folder from the level above to include its images.</small></div>`;
     return;
   }
 
-  const ancestorPath = browseStack.map(b => b.name).concat(currentName).join(' / ');
-  const rows = folders.map(f => {
-    const checked = selectedFolders.has(f.id) ? 'checked' : '';
+  const parentPath = ['My Drive', ...browseStack.map(b => b.name)].join(' › ');
+
+  grid.innerHTML = folders.map(f => {
+    const isSel = selectedFolders.has(f.id);
     return `
-      <div class="folder-row" data-id="${f.id}" data-name="${escHtml(f.name)}" data-path="${escHtml(ancestorPath)}">
-        <label class="folder-check-area" onclick="event.stopPropagation()">
-          <input type="checkbox" class="folder-check" ${checked}
-            data-id="${f.id}" data-name="${escHtml(f.name)}" data-path="${escHtml(ancestorPath)}"
-            onchange="toggleFolderSelect(this)">
-        </label>
-        <div class="folder-tap">
-          <span class="folder-icon">📁</span>
-          <span class="folder-name">${escHtml(f.name)}</span>
-          <span style="flex:1"></span>
-          <span class="folder-drill">›</span>
-        </div>
+      <div class="ftile${isSel ? ' ftile-sel' : ''}" data-id="${f.id}" data-name="${escHtml(f.name)}" data-path="${escHtml(parentPath)}">
+        <span class="ftile-sel-btn">${isSel ? '✓' : '✚'}</span>
+        <span class="ftile-icon">📁</span>
+        <span class="ftile-name">${escHtml(f.name)}</span>
       </div>`;
   }).join('');
-  bc.innerHTML = rows;
 
-  // Attach click handlers after DOM insertion (avoids inline-onclick escaping issues)
-  bc.querySelectorAll('.folder-tap').forEach(tap => {
-    const row = tap.closest('.folder-row');
-    tap.addEventListener('click', () => browseInto(row.dataset.id, row.dataset.name));
+  // Attach events after DOM insert (avoids inline-onclick string-escaping issues)
+  grid.querySelectorAll('.ftile').forEach(tile => {
+    const { id, name, path } = tile.dataset;
+
+    // Tap the ✚/✓ button area → select/deselect
+    tile.querySelector('.ftile-sel-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      const isSel = selectedFolders.has(id);
+      if (isSel) {
+        selectedFolders.delete(id);
+        tile.classList.remove('ftile-sel');
+        tile.querySelector('.ftile-sel-btn').textContent = '✚';
+      } else {
+        selectedFolders.set(id, { id, name, path });
+        tile.classList.add('ftile-sel');
+        tile.querySelector('.ftile-sel-btn').textContent = '✓';
+      }
+      persistAndRefreshSelection();
+    });
+
+    // Tap rest of tile → navigate into folder
+    tile.addEventListener('click', () => {
+      browseStack.push({ id, name });
+      updateBrowseCrumb();
+      loadBrowseFolders(id, name);
+    });
   });
-}
-
-function browseInto(id, name) {
-  browseStack.push({ id, name });
-  updateBrowseCrumb();
-  loadBrowseFolders(id, name);
 }
 
 function browseBack() {
   if (!browseStack.length) return;
   browseStack.pop();
-  const now = browseStack.length
-    ? browseStack[browseStack.length - 1]
-    : { id: 'root', name: 'My Drive' };
   updateBrowseCrumb();
-  loadBrowseFolders(now.id, now.name);
-}
-
-function browseHome() {
-  browseStack = [];
-  updateBrowseCrumb();
-  loadBrowseFolders('root', 'My Drive');
+  loadBrowseFolders(currentBrowseId(), currentBrowseName());
 }
 
 function updateBrowseCrumb() {
@@ -869,38 +784,14 @@ function updateBrowseCrumb() {
   el('browse-back-btn').disabled = browseStack.length === 0;
 }
 
-function toggleFolderSelect(checkbox) {
-  const { id, name, path } = checkbox.dataset;
-  if (checkbox.checked) {
-    selectedFolders.set(id, { id, name, path });
-  } else {
-    selectedFolders.delete(id);
-  }
-  persistSelectedFolders();
-  updateBrowseFooter();
-}
-
-function persistSelectedFolders() {
-  try {
-    localStorage.setItem('ph_selected_folders', JSON.stringify([...selectedFolders.values()]));
-  } catch(e) { /* ignore */ }
-}
-
-function updateBrowseFooter() {
-  const n = selectedFolders.size;
-  el('browse-sel-info').textContent = n === 0 ? 'No folders selected' : `${n} folder${n > 1 ? 's' : ''} selected`;
-  el('btn-load-sel').disabled = n === 0;
-}
-
 async function jumpToURL() {
   const input = el('jump-url').value.trim();
   if (!input) return;
   const match = input.match(/\/folders\/([a-zA-Z0-9_-]+)/);
   const folderId = match ? match[1] : input;
-  // Fetch the folder name
   try {
     const r = await driveAPI(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name`);
-    if (!r.ok) throw new Error(`${r.status}`);
+    if (!r.ok) throw new Error(r.status);
     const d = await r.json();
     browseStack = [{ id: folderId, name: d.name }];
     updateBrowseCrumb();
@@ -911,18 +802,78 @@ async function jumpToURL() {
   }
 }
 
+function clearAllFolders() {
+  selectedFolders.clear();
+  persistAndRefreshSelection();
+  // Update all visible tile states
+  el('ftile-grid').querySelectorAll('.ftile').forEach(tile => {
+    tile.classList.remove('ftile-sel');
+    tile.querySelector('.ftile-sel-btn').textContent = '✚';
+  });
+}
+
+function persistAndRefreshSelection() {
+  try {
+    localStorage.setItem('ph_selected_folders', JSON.stringify([...selectedFolders.values()]));
+  } catch(e) {}
+  updateBrowseFooter();
+  updateSelectionSidebar();
+}
+
+function updateBrowseFooter() {
+  const n = selectedFolders.size;
+  el('browse-sel-info').textContent = n === 0 ? 'No folders selected' : `${n} folder${n > 1 ? 's' : ''} selected`;
+  el('btn-load-sel').disabled = n === 0;
+  const clearBtn = el('btn-footer-clear');
+  if (clearBtn) clearBtn.style.display = n > 0 ? 'inline-flex' : 'none';
+}
+
+function updateSelectionSidebar() {
+  const list = el('sel-list');
+  const empty = el('sel-empty');
+  const n = selectedFolders.size;
+  el('sel-title').textContent = n > 0 ? `Selected (${n})` : 'Selected';
+
+  if (!n) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = [...selectedFolders.values()].map(f => `
+    <div class="sel-item" data-id="${f.id}">
+      <div class="sel-item-wrap">
+        <div class="sel-item-name">${escHtml(f.name)}</div>
+        <div class="sel-item-path">${escHtml(f.path)}</div>
+      </div>
+      <button class="sel-item-remove" data-id="${f.id}" title="Remove">✕</button>
+    </div>`).join('');
+
+  list.querySelectorAll('.sel-item-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      selectedFolders.delete(id);
+      // Reflect in grid if the tile is visible
+      const tile = el('ftile-grid')?.querySelector(`.ftile[data-id="${id}"]`);
+      if (tile) {
+        tile.classList.remove('ftile-sel');
+        tile.querySelector('.ftile-sel-btn').textContent = '✚';
+      }
+      persistAndRefreshSelection();
+    });
+  });
+}
+
 async function loadSelectedFolders() {
   if (!selectedFolders.size) return;
-
   showLoading(true);
   photos = []; marked.clear(); favorites = new Set(); cur = 0; undoStack = [];
   const seenIds = new Set();
   let n = 0;
-
   try {
     for (const folder of selectedFolders.values()) {
       for await (const p of walkFolder(folder.id, folder.name + '/')) {
-        if (seenIds.has(p.id)) continue; // dedup in case parent + child both selected
+        if (seenIds.has(p.id)) continue;
         seenIds.add(p.id);
         photos.push(p); n++;
         if (n % 10 === 0) { el('scan-n').textContent = `${n} images found…`; await yld(); }
@@ -933,12 +884,9 @@ async function loadSelectedFolders() {
     alert('Could not scan folders:\n' + e.message);
     return;
   }
-
   showLoading(false);
-
   if (!photos.length) { alert('No images found in the selected folders.'); return; }
   for (const p of photos) { if (p.name.startsWith('_f')) favorites.add(p.id); }
-
   showScreen('app');
   enterCull();
   await render();
@@ -948,6 +896,7 @@ function goToFolder() {
   clearInterval(ssTimer);
   showScreen('s-browse');
   updateBrowseFooter();
+  updateSelectionSidebar();
 }
 
 // ── Render ────────────────────────────────────────────────────
@@ -955,21 +904,14 @@ function goToFolder() {
 async function render() {
   const p = photos[cur];
   if (!p) return;
-
-  const img = el('photo');
-  const loader = el('img-loading');
-
+  const img = el('photo'), loader = el('img-loading');
   img.classList.add('loading');
   loader.style.display = 'block';
-
   try {
     if (blobURL) { URL.revokeObjectURL(blobURL); blobURL = null; }
-    const r = await driveAPI(
-      `https://www.googleapis.com/drive/v3/files/${p.id}?alt=media`
-    );
-    if (!r.ok) throw new Error(`Image fetch failed: ${r.status}`);
-    const blob = await r.blob();
-    blobURL = URL.createObjectURL(blob);
+    const r = await driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}?alt=media`);
+    if (!r.ok) throw new Error(`fetch ${r.status}`);
+    blobURL = URL.createObjectURL(await r.blob());
     img.src = blobURL;
   } catch(e) {
     console.warn('render error', e);
@@ -978,11 +920,9 @@ async function render() {
     img.classList.remove('loading');
     loader.style.display = 'none';
   }
-
   const isDel = marked.has(cur);
   img.className = isDel ? 'dim' : '';
   el('del-badge').style.display = isDel ? 'block' : 'none';
-
   updateUI();
   preload(photos[(cur + 1) % photos.length]);
 }
@@ -996,20 +936,16 @@ function preload(p) {
 function updateUI() {
   const p = photos[cur];
   const n = marked.size;
-
   if (mode === 'ss') {
     const keepers = photos.filter((_, i) => !marked.has(i));
-    const ki = keepers.indexOf(p);
-    el('progress').textContent = `${Math.max(ki, 0) + 1} / ${keepers.length}`;
+    el('progress').textContent = `${Math.max(keepers.indexOf(p), 0) + 1} / ${keepers.length}`;
   } else {
     el('progress').textContent = `${cur + 1} / ${photos.length}`;
   }
   el('filepath').textContent = p?.path ?? '';
   el('marked-count').textContent = n ? `${n} marked` : '';
 
-  const folder = p?.path?.includes('/')
-    ? p.path.split('/').slice(0, -1).join('/')
-    : '';
+  const folder = p?.path?.includes('/') ? p.path.split('/').slice(0, -1).join('/') : '';
   const fb = el('folder-badge');
   if (folder) { fb.textContent = folder; fb.style.display = 'block'; }
   else { fb.style.display = 'none'; }
@@ -1025,8 +961,7 @@ function updateUI() {
   if (pb) { pb.style.display = n ? 'inline-flex' : 'none'; pb.textContent = `🗑 Purge ${n}`; }
 
   const isFav = favorites.has(p.id);
-  const favBadge = el('fav-badge');
-  if (favBadge) favBadge.style.display = isFav ? 'block' : 'none';
+  el('fav-badge').style.display = isFav ? 'block' : 'none';
   const bfav = el('btn-fav');
   if (bfav) {
     bfav.textContent = isFav ? '♥' : '♡';
@@ -1059,9 +994,7 @@ async function navRand() {
   const pool = photos.map((_, i) => i).filter(i => ssPhotoOk(i) && i !== cur);
   if (!pool.length) return;
   cur = pool[Math.floor(Math.random() * pool.length)];
-  rendering = true;
-  await render();
-  rendering = false;
+  rendering = true; await render(); rendering = false;
 }
 
 // ── Mark ──────────────────────────────────────────────────────
@@ -1093,14 +1026,12 @@ async function setFav(forceFav) {
       `https://www.googleapis.com/drive/v3/files/${p.id}`,
       { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newName }) }
     );
-    if (!r.ok) throw new Error(`Rename failed: ${r.status}`);
+    if (!r.ok) throw new Error(`Rename ${r.status}`);
     p.path = p.path.replace(/[^/]*$/, newName);
     p.name = newName;
     if (isFav) favorites.delete(p.id); else favorites.add(p.id);
     updateUI();
-  } catch(e) {
-    alert('Could not favorite: ' + e.message);
-  }
+  } catch(e) { alert('Could not favorite: ' + e.message); }
 }
 async function addFav()    { await setFav(true); }
 async function toggleFav() { await setFav(); }
@@ -1108,12 +1039,9 @@ async function toggleFav() { await setFav(); }
 async function undo() {
   if (!undoStack.length) return;
   const { action, idx } = undoStack.pop();
-  if (action === 'mark') marked.delete(idx);
-  else marked.add(idx);
+  if (action === 'mark') marked.delete(idx); else marked.add(idx);
   cur = idx;
-  rendering = true;
-  await render();
-  rendering = false;
+  rendering = true; await render(); rendering = false;
 }
 
 // ── Modes ─────────────────────────────────────────────────────
@@ -1121,36 +1049,36 @@ async function undo() {
 function enterCull() {
   mode = 'cull';
   clearInterval(ssTimer);
-  el('ctrls').innerHTML = `
-    <div class="ctrl-main">
-      <button class="btn btn-ghost" onclick="nav(-1)" title="Previous">◀</button>
-      <button class="btn btn-danger" id="btn-mark" onclick="toggleMark()" title="Mark for deletion">🗑</button>
-      <button class="btn btn-ghost" id="btn-fav" onclick="toggleFav()" title="Favorite">♡</button>
-      <button class="btn btn-ghost" onclick="nav(1)" title="Next">▶</button>
-    </div>
+  const ctrls = el('ctrls');
+  ctrls.innerHTML = '';
+
+  const mainRow = document.createElement('div');
+  mainRow.className = 'ctrl-main';
+  mainRow.innerHTML = `
+    <button class="btn btn-ghost" onclick="nav(-1)" title="Previous (←)">◀</button>
+    <button class="btn btn-danger" id="btn-mark" onclick="toggleMark()">🗑</button>
+    <button class="btn btn-ghost" id="btn-fav"  onclick="toggleFav()">♡</button>
+    <button class="btn btn-ghost" onclick="nav(1)" title="Next (→)">▶</button>
   `;
-  const sec = document.createElement('div');
-  sec.className = 'ctrl-sec';
-  sec.id = 'ctrl-sec-row';
-  sec.innerHTML = `
+  ctrls.appendChild(mainRow);
+
+  const secRow = document.createElement('div');
+  secRow.className = 'ctrl-sec';
+  secRow.innerHTML = `
     <button class="btn btn-ghost" onclick="undo()">↩ Undo</button>
     <button class="btn btn-ghost" onclick="enterSS()">▶ Slideshow</button>
-    <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">🗑 Purge 0</button>
+    <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">🗑 Purge</button>
   `;
-  el('ctrls').appendChild(sec);
+  ctrls.appendChild(secRow);
+
   el('hints').textContent = '← → navigate  ·  D mark  ·  F favorite  ·  Z undo  ·  S slideshow';
   updateUI();
 }
 
 function enterSS() {
   const available = photos.filter((_, i) => !marked.has(i));
-  if (available.length === 0) {
-    alert('All photos are marked for deletion — nothing to show in slideshow.');
-    return;
-  }
-  if (ssFavOnly && available.filter(p => favorites.has(p.id)).length === 0) {
-    ssFavOnly = false;
-  }
+  if (!available.length) { alert('All photos are marked for deletion.'); return; }
+  if (ssFavOnly && !available.some(p => favorites.has(p.id))) ssFavOnly = false;
   if (!ssFavValid()) {
     let idx = cur, steps = 0;
     do {
@@ -1160,17 +1088,22 @@ function enterSS() {
     cur = idx;
   }
   mode = 'ss'; ssPlay = true; ssRand = false;
-  el('ctrls').innerHTML = `
-    <div class="ctrl-main">
-      <button class="btn btn-ghost" onclick="nav(-1)">◀</button>
-      <button class="btn btn-primary" id="btn-pp" onclick="togglePlay()">⏸</button>
-      <button class="btn btn-ghost" id="btn-rand" onclick="toggleRand()">🔀</button>
-      <button class="btn btn-ghost" onclick="nav(1)">▶</button>
-    </div>
+
+  const ctrls = el('ctrls');
+  ctrls.innerHTML = '';
+
+  const mainRow = document.createElement('div');
+  mainRow.className = 'ctrl-main';
+  mainRow.innerHTML = `
+    <button class="btn btn-ghost" onclick="nav(-1)" title="Previous">◀</button>
+    <button class="btn btn-primary" id="btn-pp" onclick="togglePlay()">⏸ Pause</button>
+    <button class="btn btn-ghost" onclick="nav(1)" title="Next">▶</button>
   `;
-  const sec = document.createElement('div');
-  sec.className = 'ctrl-sec';
-  sec.innerHTML = `
+  ctrls.appendChild(mainRow);
+
+  const secRow = document.createElement('div');
+  secRow.className = 'ctrl-sec';
+  secRow.innerHTML = `
     <span class="ctrl-lbl">Speed</span>
     <select id="ss-spd" onchange="resetTimer()">
       <option value="800">0.8s</option>
@@ -1179,13 +1112,15 @@ function enterSS() {
       <option value="5000">5s</option>
       <option value="8000">8s</option>
     </select>
-    <label class="ctrl-lbl" style="cursor:pointer;display:flex;align-items:center;gap:4px">
-      <input type="checkbox" id="cb-fav-only" onchange="toggleFavOnly()" ${ssFavOnly ? 'checked' : ''}> ♥ Favs only
+    <button class="btn btn-ghost" id="btn-rand" onclick="toggleRand()">🔀 Random</button>
+    <label class="ctrl-lbl" style="cursor:pointer;gap:5px">
+      <input type="checkbox" id="cb-fav-only" onchange="toggleFavOnly()" ${ssFavOnly ? 'checked' : ''}> ♥ Favs
     </label>
     <div class="sep"></div>
     <button class="btn btn-ghost" onclick="enterCull()">✂ Cull</button>
   `;
-  el('ctrls').appendChild(sec);
+  ctrls.appendChild(secRow);
+
   el('hints').textContent = '← → navigate  ·  Space play/pause  ·  R random  ·  S cull mode';
   startTimer();
   render();
@@ -1206,8 +1141,7 @@ function toggleFavOnly() {
       idx = (idx + 1) % photos.length;
       if (++steps > photos.length) { ssFavOnly = false; el('cb-fav-only').checked = false; return; }
     } while (!ssPhotoOk(idx));
-    cur = idx;
-    render();
+    cur = idx; render();
   }
 }
 
@@ -1222,7 +1156,7 @@ function resetTimer() { if (ssPlay) startTimer(); }
 function togglePlay() {
   ssPlay = !ssPlay;
   const b = el('btn-pp');
-  if (b) b.textContent = ssPlay ? '⏸' : '▶';
+  if (b) b.textContent = ssPlay ? '⏸ Pause' : '▶ Play';
   ssPlay ? startTimer() : clearInterval(ssTimer);
 }
 function toggleRand() {
@@ -1247,21 +1181,12 @@ async function doPurge() {
   for (const i of idxs) {
     const p = photos[i];
     try {
-      const r = await driveAPI(
-        `https://www.googleapis.com/drive/v3/files/${p.id}`,
-        { method: 'DELETE' }
-      );
-      if (r.ok || r.status === 204) {
-        photos.splice(i, 1);
-      } else {
-        fail++;
-      }
-    } catch(e) {
-      fail++;
-    }
+      const r = await driveAPI(`https://www.googleapis.com/drive/v3/files/${p.id}`, { method: 'DELETE' });
+      if (r.ok || r.status === 204) photos.splice(i, 1); else fail++;
+    } catch(e) { fail++; }
   }
   marked.clear();
-  if (fail) alert(`${fail} file(s) could not be deleted (check Drive permissions).`);
+  if (fail) alert(`${fail} file(s) could not be deleted.`);
   if (!photos.length) { showScreen('s-browse'); updateBrowseFooter(); return; }
   cur = Math.min(cur, photos.length - 1);
   render();
@@ -1294,12 +1219,9 @@ el('viewport').addEventListener('touchend', e => {
   const img = el('photo');
   img.classList.remove('swiping');
   img.style.transform = '';
-
   const dx = e.changedTouches[0].clientX - touchStartX;
   const dy = e.changedTouches[0].clientY - touchStartY;
-  if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-    dx < 0 ? nav(1) : nav(-1);
-  }
+  if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.2) dx < 0 ? nav(1) : nav(-1);
 }, { passive: true });
 
 el('viewport').addEventListener('touchcancel', () => {
@@ -1312,10 +1234,8 @@ el('viewport').addEventListener('touchcancel', () => {
 // ── Keyboard ──────────────────────────────────────────────────
 
 document.addEventListener('keydown', e => {
-  const appActive = el('app').classList.contains('active');
-  if (!appActive) return;
+  if (!el('app').classList.contains('active')) return;
   if (el('modal').style.display === 'flex') { if (e.key === 'Escape') closeModal(); return; }
-
   switch (e.key) {
     case 'ArrowRight': case 'ArrowDown': e.preventDefault(); nav(1); break;
     case 'ArrowLeft':  case 'ArrowUp':   e.preventDefault(); nav(-1); break;
@@ -1325,7 +1245,7 @@ document.addEventListener('keydown', e => {
       if (mode === 'cull') { e.preventDefault(); addFav(); } break;
     case 'z': case 'Z':
       if (mode === 'cull') { e.preventDefault(); undo(); } break;
-    case ' ':  e.preventDefault(); if (mode === 'ss') togglePlay(); break;
+    case ' ': e.preventDefault(); if (mode === 'ss') togglePlay(); break;
     case 'r': case 'R': if (mode === 'ss') toggleRand(); break;
     case 's': case 'S': mode === 'cull' ? enterSS() : enterCull(); break;
     case 'Escape': if (mode === 'ss') enterCull(); break;
@@ -1334,34 +1254,25 @@ document.addEventListener('keydown', e => {
 
 // ── Utils ─────────────────────────────────────────────────────
 
-function el(id) { return document.getElementById(id); }
-function yld()  { return new Promise(r => setTimeout(r, 0)); }
+function el(id)  { return document.getElementById(id); }
+function yld()   { return new Promise(r => setTimeout(r, 0)); }
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function showScreen(id) {
-  ['s-setup', 's-browse'].forEach(sid => {
+  ['s-setup','s-browse'].forEach(sid => {
     const e = el(sid);
     if (!e) return;
     e.style.display = sid === id ? 'flex' : 'none';
   });
   const appEl = el('app');
-  if (id === 'app') {
-    appEl.classList.add('active');
-    appEl.style.display = 'flex';
-  } else {
-    appEl.classList.remove('active');
-    appEl.style.display = 'none';
-  }
+  if (id === 'app') { appEl.classList.add('active'); appEl.style.display = 'flex'; }
+  else              { appEl.classList.remove('active'); appEl.style.display = 'none'; }
 }
-
-function showLoading(show) {
-  el('s-loading').style.display = show ? 'flex' : 'none';
-}
-
-// Init footer state
-updateBrowseFooter();
+function showLoading(show) { el('s-loading').style.display = show ? 'flex' : 'none'; }
 </script>
 </body>
 </html>
