@@ -568,8 +568,7 @@ let selectedFolders = new Map(); // id -> {id, name, path}
 
 // Viewer
 let photos = [], cur = 0, marked = new Set(), favorites = new Set();
-let mode = 'cull';
-let ssPlay = true, ssRand = false, ssTimer = null, ssFavOnly = false;
+let ssPlay = false, ssRand = false, ssTimer = null, ssFavOnly = false;
 let blobURL = null;
 let rendering = false;
 let undoStack = [];
@@ -897,15 +896,19 @@ async function loadSelectedFolders() {
   if (!photos.length) { alert('No images found in the selected folders.'); return; }
   for (const p of photos) { if (p.name.startsWith('_f')) favorites.add(p.id); }
   showScreen('app');
-  enterCull();
+  initControls();
   await render();
 }
 
 function goToFolder() {
   clearInterval(ssTimer);
+  ssPlay = false;
+  selectedFolders.clear();
+  persistAndRefreshSelection();
+  browseStack = [];
+  updateBrowseCrumb();
+  loadBrowseFolders('root', 'My Drive');
   showScreen('s-browse');
-  updateBrowseFooter();
-  updateSelectionSidebar();
 }
 
 // ── Render ────────────────────────────────────────────────────
@@ -945,12 +948,7 @@ function preload(p) {
 function updateUI() {
   const p = photos[cur];
   const n = marked.size;
-  if (mode === 'ss') {
-    const keepers = photos.filter((_, i) => !marked.has(i));
-    el('progress').textContent = `${Math.max(keepers.indexOf(p), 0) + 1} / ${keepers.length}`;
-  } else {
-    el('progress').textContent = `${cur + 1} / ${photos.length}`;
-  }
+  el('progress').textContent = `${cur + 1} / ${photos.length}`;
   el('filepath').textContent = p?.path ?? '';
   el('marked-count').textContent = n ? `${n} marked` : '';
 
@@ -978,33 +976,39 @@ function updateUI() {
     bfav.title = isFav ? 'Unfavorite' : 'Favorite';
     bfav.className = isFav ? 'btn btn-ghost btn-fav-on' : 'btn btn-ghost';
   }
+  const ppb = el('btn-pp');
+  if (ppb) { ppb.textContent = ssPlay ? '⏸ Pause' : '▶ Play'; ppb.className = ssPlay ? 'btn btn-primary' : 'btn btn-ghost'; }
+  const rb = el('btn-rand');
+  if (rb) rb.classList.toggle('btn-on', ssRand);
 }
 
 // ── Navigation ────────────────────────────────────────────────
 
 async function nav(d) {
   if (rendering) return;
-  if (mode === 'ss') {
+  let nextIdx;
+  if (ssRand && d > 0) {
+    // random applies to both manual "next" and auto-advance
+    const pool = photos.map((_, i) => i).filter(i => ssPhotoOk(i) && i !== cur);
+    if (!pool.length) return;
+    nextIdx = pool[Math.floor(Math.random() * pool.length)];
+  } else if (ssPlay) {
+    // when playing, skip marked + fav-only filter
     let idx = cur, steps = 0;
     do {
       idx = (idx + d + photos.length) % photos.length;
       if (++steps > photos.length) return;
     } while (!ssPhotoOk(idx));
-    cur = idx;
+    nextIdx = idx;
   } else {
-    cur = (cur + d + photos.length) % photos.length;
+    // manual step: walk all photos linearly
+    nextIdx = (cur + d + photos.length) % photos.length;
   }
+  cur = nextIdx;
   rendering = true;
   await render();
   rendering = false;
-  if (mode === 'ss' && ssPlay) resetTimer();
-}
-
-async function navRand() {
-  const pool = photos.map((_, i) => i).filter(i => ssPhotoOk(i) && i !== cur);
-  if (!pool.length) return;
-  cur = pool[Math.floor(Math.random() * pool.length)];
-  rendering = true; await render(); rendering = false;
+  if (ssPlay) resetTimer();
 }
 
 // ── Mark ──────────────────────────────────────────────────────
@@ -1054,10 +1058,9 @@ async function undo() {
   rendering = true; await render(); rendering = false;
 }
 
-// ── Modes ─────────────────────────────────────────────────────
+// ── Controls ───────────────────────────────────────────────────
 
-function enterCull() {
-  mode = 'cull';
+function initControls() {
   clearInterval(ssTimer);
   const ctrls = el('ctrls');
   ctrls.innerHTML = '';
@@ -1067,47 +1070,9 @@ function enterCull() {
   mainRow.innerHTML = `
     <button class="btn btn-ghost" onclick="nav(-1)" title="Previous (←)">◀</button>
     <button class="btn btn-danger" id="btn-mark" onclick="toggleMark()">🗑</button>
-    <button class="btn btn-ghost" id="btn-fav"  onclick="toggleFav()">♡</button>
+    <button class="btn btn-ghost" id="btn-pp" onclick="togglePlay()">▶ Play</button>
+    <button class="btn btn-ghost" id="btn-fav" onclick="toggleFav()">♡</button>
     <button class="btn btn-ghost" onclick="nav(1)" title="Next (→)">▶</button>
-  `;
-  ctrls.appendChild(mainRow);
-
-  const secRow = document.createElement('div');
-  secRow.className = 'ctrl-sec';
-  secRow.innerHTML = `
-    <button class="btn btn-ghost" onclick="undo()">↩ Undo</button>
-    <button class="btn btn-ghost" onclick="enterSS()">▶ Slideshow</button>
-    <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">🗑 Purge</button>
-  `;
-  ctrls.appendChild(secRow);
-
-  el('hints').textContent = '← → navigate  ·  D mark  ·  F favorite  ·  Z undo  ·  S slideshow';
-  updateUI();
-}
-
-function enterSS() {
-  const available = photos.filter((_, i) => !marked.has(i));
-  if (!available.length) { alert('All photos are marked for deletion.'); return; }
-  if (ssFavOnly && !available.some(p => favorites.has(p.id))) ssFavOnly = false;
-  if (!ssFavValid()) {
-    let idx = cur, steps = 0;
-    do {
-      idx = (idx + 1) % photos.length;
-      if (++steps > photos.length) break;
-    } while (!ssPhotoOk(idx));
-    cur = idx;
-  }
-  mode = 'ss'; ssPlay = true; ssRand = false;
-
-  const ctrls = el('ctrls');
-  ctrls.innerHTML = '';
-
-  const mainRow = document.createElement('div');
-  mainRow.className = 'ctrl-main';
-  mainRow.innerHTML = `
-    <button class="btn btn-ghost" onclick="nav(-1)" title="Previous">◀</button>
-    <button class="btn btn-primary" id="btn-pp" onclick="togglePlay()">⏸ Pause</button>
-    <button class="btn btn-ghost" onclick="nav(1)" title="Next">▶</button>
   `;
   ctrls.appendChild(mainRow);
 
@@ -1127,13 +1092,13 @@ function enterSS() {
       <input type="checkbox" id="cb-fav-only" onchange="toggleFavOnly()" ${ssFavOnly ? 'checked' : ''}> ♥ Favs
     </label>
     <div class="sep"></div>
-    <button class="btn btn-ghost" onclick="enterCull()">✂ Cull</button>
+    <button class="btn btn-ghost" onclick="undo()">↩ Undo</button>
+    <button class="btn btn-danger" id="btn-purge" style="display:none" onclick="askPurge()">🗑 Purge</button>
   `;
   ctrls.appendChild(secRow);
 
-  el('hints').textContent = '← → navigate  ·  Space play/pause  ·  R random  ·  S cull mode';
-  startTimer();
-  render();
+  el('hints').textContent = '← → navigate  ·  Space play/pause  ·  D mark  ·  F favorite  ·  R random  ·  Z undo';
+  updateUI();
 }
 
 function ssPhotoOk(idx) {
@@ -1160,13 +1125,13 @@ function toggleFavOnly() {
 function startTimer() {
   clearInterval(ssTimer);
   const spd = parseInt(el('ss-spd')?.value || '3000');
-  ssTimer = setInterval(() => { ssRand ? navRand() : nav(1); }, spd);
+  ssTimer = setInterval(() => nav(1), spd);
 }
 function resetTimer() { if (ssPlay) startTimer(); }
 function togglePlay() {
   ssPlay = !ssPlay;
   const b = el('btn-pp');
-  if (b) b.textContent = ssPlay ? '⏸ Pause' : '▶ Play';
+  if (b) { b.textContent = ssPlay ? '⏸ Pause' : '▶ Play'; b.className = ssPlay ? 'btn btn-primary' : 'btn btn-ghost'; }
   ssPlay ? startTimer() : clearInterval(ssTimer);
 }
 function toggleRand() {
@@ -1249,16 +1214,11 @@ document.addEventListener('keydown', e => {
   switch (e.key) {
     case 'ArrowRight': case 'ArrowDown': e.preventDefault(); nav(1); break;
     case 'ArrowLeft':  case 'ArrowUp':   e.preventDefault(); nav(-1); break;
-    case 'd': case 'D': case 'Delete': case 'Backspace':
-      if (mode === 'cull') { e.preventDefault(); toggleMark(); } break;
-    case 'f': case 'F':
-      if (mode === 'cull') { e.preventDefault(); addFav(); } break;
-    case 'z': case 'Z':
-      if (mode === 'cull') { e.preventDefault(); undo(); } break;
-    case ' ': e.preventDefault(); if (mode === 'ss') togglePlay(); break;
-    case 'r': case 'R': if (mode === 'ss') toggleRand(); break;
-    case 's': case 'S': mode === 'cull' ? enterSS() : enterCull(); break;
-    case 'Escape': if (mode === 'ss') enterCull(); break;
+    case 'd': case 'D': case 'Delete': case 'Backspace': e.preventDefault(); toggleMark(); break;
+    case 'f': case 'F': e.preventDefault(); addFav(); break;
+    case 'z': case 'Z': e.preventDefault(); undo(); break;
+    case ' ': e.preventDefault(); togglePlay(); break;
+    case 'r': case 'R': toggleRand(); break;
   }
 });
 
