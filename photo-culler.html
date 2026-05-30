@@ -316,7 +316,16 @@ input[type=text]::placeholder { color: #3a3a3a; }
   font-family: inherit;
 }
 #btn-change-folder:hover { border-color: #555; color: var(--text); }
-#progress { font-size: 0.78rem; color: var(--muted); white-space: nowrap; min-width: 56px; }
+#progress { font-size: 0.78rem; color: var(--muted); white-space: nowrap; min-width: 56px; cursor: pointer; }
+#progress:hover { color: var(--text); }
+#progress input {
+  width: 3.8em; background: #1a1a1a; border: 1px solid var(--accent);
+  border-radius: 4px; color: var(--text); font-size: 0.78rem;
+  text-align: center; padding: 2px 4px; font-family: inherit;
+  -moz-appearance: textfield;
+}
+#progress input::-webkit-outer-spin-button,
+#progress input::-webkit-inner-spin-button { -webkit-appearance: none; }
 #filepath {
   flex: 1; font-size: 0.7rem; color: #3a3a3a;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
@@ -1220,6 +1229,34 @@ document.addEventListener('keydown', e => {
     case ' ': e.preventDefault(); togglePlay(); break;
     case 'r': case 'R': toggleRand(); break;
   }
+});
+
+// tap progress counter to jump to a specific image
+el('progress').addEventListener('click', () => {
+  if (!photos.length || el('progress').querySelector('input')) return;
+  const total = photos.length;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = 1; input.max = total; input.value = cur + 1;
+  const prog = el('progress');
+  prog.textContent = '';
+  prog.appendChild(input);
+  input.select();
+
+  const commit = () => {
+    const n = parseInt(input.value);
+    prog.textContent = `${cur + 1} / ${total}`;
+    if (!isNaN(n) && n >= 1 && n <= total && n - 1 !== cur) {
+      cur = n - 1;
+      if (!rendering) { rendering = true; render().then(() => { rendering = false; }); }
+    }
+  };
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { prog.textContent = `${cur + 1} / ${total}`; }
+  });
+  input.addEventListener('blur', commit);
+  input.focus();
 });
 
 // browser back → go to folder browser instead of leaving the app
